@@ -115,8 +115,8 @@ DIRECTOR_PE = r"""你同时是这部剧的导演分镜：把编剧定下的这�
 - 每一拍就是一个镜头（一个景别、一种运镜），拍与拍之间是切。
 - mode=5+10：seg1 1–2 拍（0–5 秒，回应，可以没有台词）；seg2 2–4 拍（0–10 秒，演绎和钩子）。
 - mode=5+15：seg1 1–2 拍（0–5 秒，回应，可以没有台词）；seg2 4–6 拍（0–15 秒，一段连续的情节和钩子；每拍 2–4 秒，有新的动作或信息，不把一个动作拖长）。
-- 本轮 mode=auto 时由你决定时长，写进 dur_mode（V1.7）。优先 5+15：只要这一轮有东西可演就用它——吻戏、换场、配角出现、有过程的事、两人有肢体拉扯或情绪转折、她的话要先接住再演、问题要答了再给画面。她的话再短，演出来内容多也是 5+15（“吻我”“带我走”“你喜欢我多久了”）。
-- 只有内容体量很小、画面单一才用 5+10：她只是一句简单确认或很轻的小动作（“嗯”“好”“谢谢”、摸摸他的脸、靠他肩上），他一个反应加一个小后续就够，不换场、没有配角、没有吻。拿不准用 5+15。
+- 本轮 mode=auto 时由你决定时长，写进 dur_mode（V2.3，Vicky）：优先 5+15，前提是 15 秒每一拍都有新的动作或信息，从头到尾都有东西可看：吻戏、唱歌、骑行、配角出现、一段完整的过程（煮面、修东西）。
+- 剧情填不满 15 秒就用 5+10：说完话之后只剩对视、笑、点头、呼吸、肩膀放松，就是填不满。不要为了凑时长写这些拍子，也不要硬凑尴尬的笑。问答、表态这类一两句话的轮次通常就是 5+10。代码会删掉结尾没有表达的拍子，删完不超过 4 拍就走 5+10。
 - mode=10+10：seg1 2–3 拍（回应 + 演绎前半）；seg2 2–4 拍（演绎后半和钩子）。10+10 的 seg1 是首尾帧锁的一镜到底（V0.17）：首帧和尾帧都是上一刻的画面，所以 seg1 的几拍是同一个镜头里先后发生的动作，镜头一栏都写首帧的景别加“固定”；两个人都在原位，只用表情、眼神、头部、手和一句台词演回应和演绎前半，不靠近也不后退，不碰远处的东西，最后回到开头的位置、姿势和距离；hold 写开头那一刻的画面。吻戏、换场都放进 seg2。
 - seg2 最多 7 拍，一般不超过 6 拍。
 - set：这一轮结束时所在地点的固定场景描述，一句话写清时间、墙面材质、主要家具、主光源和色温（例如“周六下午的小书房，深色木墙，一盏暖黄台灯在右侧，窗外是白天”）；资料包有这个地点的 set 就照抄。输入里会给出当前地点的 set：地点不变时原样照抄，不改一个字；换到新地点时写新的。
@@ -248,6 +248,8 @@ V1.3 的写法是慢慢靠近、短暂一吻、静止的手、分开，实际只
 
 OUTPUT_PE = r"""【输出】只输出一个 JSON 对象，不要解释或 markdown：
 {"dur_mode": "本轮 mode=auto 时必填：5+15 或 5+10；否则照抄本轮 mode",
+ "bgm": "配乐 id；不需要写 none（见【配乐和唱歌】）",
+ "song": {"id": "歌的 id", "beat": 0}（这一轮有人唱歌才写，否则写 null）,
  "intimacy": 0,
  "wardrobe": {"he": "这一轮结束时 Rafael 穿着什么，没变写“不变”", "she": "这一轮结束时她穿着什么，没变写“不变”"},
  "intent": "她这一句在现实里是什么样（一句话：谁在哪、谁对谁做什么、观众看到什么）",
@@ -289,6 +291,13 @@ SYSTEM = WRITER_PE + "\n" + DIRECTOR_PE + "\n" + OUTPUT_PE + r"""
 - 输入会给【此刻两人的穿着】。这一轮结束时的穿着写进 wardrobe；没变就写“不变”。穿着只能通过画面里演出来的动作改变：脱、解开、滑落、拨开、穿上、披上，或者关灯、时间跳到清晨这种明确的省略。上一镜脱了，下一镜不能又穿着。
 - 脱衣服这样写才不崩：一拍只脱一件；用中景，看得见两个人的上半身，不拍手指解扣子的特写，不写“一颗一颗”；动作简单连贯（“她的开衫从肩上滑下来，落到床上”）；脱下来的衣服写清落在哪（地上、床尾），之后留在那里；下一拍切到脸的反应。
 - 银链不摘，头发、脸、纹身不变。她的开衫、他的 T 恤、鞋都可以按她的要求脱。
+【现实逻辑（V2.3，硬规则）】
+- 没人骑、没人开的车不会自己动，停着的车熄火停稳；东西不会自己移动、变形、消失；人不会悬空、不会瞬移。除非她明确提到魔法或超现实的设定，或这部剧的世界观本来就有，否则一律按现实物理演。
+- 空镜里不写车和人：车要出现时，一定有人骑着或开着，或者是人物走到车旁的双人镜头。
+- 同一地点同一辆车只有一辆。离开一个地点时，手里和地上的东西要交代：带走、穿回或留下，不跟到下一个地点，也不凭空回来。脱掉的鞋去骑车之前要穿回。
+【配乐和唱歌（V2.3）】
+- 输入里有【可用配乐和歌】时才用。bgm 写配乐的 id，不需要写 "none"。普通对话、问答一般不用；换到新地方、骑行、日落、吻、情绪转折这种需要渲染氛围的时候用。同一段情绪连续几轮用同一首，不要每轮换。
+- 她要谁唱歌、或她自己要唱，必须写 song（id 和 beat），id 从歌单选：谁唱选谁的，选合这一刻的。歌词是固定的，她点名要的歌也用歌单里最接近的。beat 是 seg2 里开始唱的那一拍（从 0 数）。唱的那几拍动作写“他在唱歌，看着她”，台词留空，歌声后期加；这一轮 5+15。
 【状态连续（V2.0，硬规则，Rafael 第 5–13 轮）】
 穿帮都出在这里：那件外套从牛仔变成黑皮夹克又变成背包，隔一轮消失、再出现；他脱了 T 恤，下一镜又穿着；把他扑倒在沙滩上，下一秒两人又站着。
 - 输入会给【此刻的状态】：穿着、姿态、谁拿着什么、已经出现过的东西的外观。每一拍都在这个状态里演，不回到默认样子。
@@ -327,6 +336,8 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
     intimate = level >= 2  # V1.8：亲密进行中不换场、不打断。V2.0：穿着变了不等于在亲密（Rafael 第 5–9 轮她穿着外套也不让换场）
     must_scene = place_rounds >= 3 and not intimate
     pace += '\n【此刻两人的穿着】Rafael：' + (wardrobe or {}).get('he', L.HE_DEFAULT) + '；她：' + (wardrobe or {}).get('she', L.SHE_DEFAULT) + '。'
+    if L.AUDIO_BANK.get('songs') or L.AUDIO_BANK.get('bgm'):
+        pace += '\n【可用配乐和歌】配乐：' + '；'.join(f"{k}（{v.get('desc')}）" for k, v in (L.AUDIO_BANK.get('bgm') or {}).items()) + '。歌：' + '；'.join(f"{k}（{'她' if v.get('who') == '她' else '他'}唱，{v.get('desc')}）" for k, v in (L.AUDIO_BANK.get('songs') or {}).items()) + '。'
     if cont.get('posture'): pace += '\n【此刻的姿态】' + cont['posture'] + '。没有演出来的动作，就一直是这个姿态。'
     if cont.get('holding'): pace += '\n【此刻手里和身边的东西】' + cont['holding'] + '。'
     if cont.get('looks'): pace += '\n【已经出现过的东西，外观照抄】' + '；'.join(f'{k}：{v}' for k, v in cont['looks'].items()) + '。'
@@ -396,7 +407,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         for k, v in known.items():
             room = lambda t: (re.search('卧室|客厅|厨房|阳台|浴室|书房|车|酒吧|车库|走廊|大堂|露台|屋顶', t) or [''])[0]
             if _sim(k, str(sp.get('location') or '')) >= 0.6 and room(k) == room(str(sp.get('location') or '')): sp['location'] = k; sp['set'] = v; break  # 要是同一种房间（“公寓卧室”和“公寓客厅”相似度也有 0.67）
-    ensure_empty_shot(sp); ensure_cast(sp)
+    ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp)
     settle_wardrobe(sp, wardrobe); settle_state(sp, cont, wardrobe); clean_zh(sp)
     ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']))
     sp['lint_left'] = lint(sp, m, ctx)  # V1.5：修完还剩的问题只记录，不再为选项单独调一次导演层
@@ -571,7 +582,7 @@ def autofix(sp, bad, set_now=None):
         if m:
             w = m[1]
             if not any(isinstance(p, dict) and w in str(p.get('name', '')) for p in props): props.append({'name': w, 'source': 'scene', 'how': '本来就在两人手边'})
-            if w[:2] not in (sp.get('set') or ''): sp['set'] = (sp.get('set') or set_now or '').rstrip('。') + f'；{w}就在两人手边'
+            if w[:2] not in (sp.get('set') or '') and not sp.get('scene_changed'): sp['set'] = (sp.get('set') or set_now or '').rstrip('。') + f'；{w}就在两人手边'
             fixed.append('道具来源:' + w)
     for k in ('A', 'B'):
         o = (sp.get('next') or {}).get(k) or {}
@@ -624,6 +635,19 @@ def ensure_empty_shot(sp):
     sp['empty_shot_added'] = True
 
 
+VEHICLE = re.compile('摩托|机车|汽车|轿车|单车|自行车|车身|车辆|(?<![库床])车(?!库|间|道|灯光)')
+
+
+def clean_empty_shots(sp):
+    """V2.3：空镜里的车会自己动（第 7 轮店里的摩托自己往外滑）。空镜不写车，也不写走动的东西。"""
+    for k in ('seg1', 'seg2'):
+        for b in sp.get(k) or []:
+            if str(b[2]).startswith('空镜') and VEHICLE.search(str(b[0])):
+                parts = re.split(r'(?<=[，；。,;])', str(b[0])); keep = [p for p in parts if not VEHICLE.search(p)]
+                b[0] = ''.join(keep).strip('，；,; ') or f"切到{sp.get('location') or '新地点'}的空镜：环境和光线，画面里没有人"
+                sp['empty_vehicle_cut'] = True
+
+
 def ensure_cast(sp):
     """V1.3：配角在分镜里正面出镜却没写进 cast，自动补上，才会带他的身份母版（MD-B 两组漏写，画成了另一个人）。"""
     cast = list(sp.get('cast') or [])
@@ -638,6 +662,7 @@ def ensure_cast(sp):
 def fix_place(sp, set_now):
     """打回、修剪之后还剩的地点问题直接改：换场了 set 却没换，就按地点名补一个。"""
     loc = sp.get('location') or ''
+    if sp.get('scene_changed') and set_now and _sim((sp.get('set') or '')[:len(set_now)], set_now) >= 0.8: sp['set'] = set_now  # V2.3：autofix 往 set 里加过道具，下面的 == 判不出来（第 7 轮骑行的空镜还是修车店）
     if sp.get('scene_changed') and set_now and (sp.get('set') or '').strip() == set_now.strip():
         sp['set'] = next((x['set'] for x in json.loads(PACK)['locs'] if loc and loc[:2] in x['set']), f'{loc}，自然光，时间和上一场接着')
 
@@ -651,17 +676,69 @@ LIGHT_ASK = re.compile('嗯|好的|好吧|好呀|^好$|是的|谢|摸|抱|靠|�
 LIGHT_NOT = re.compile('然后|接着|问|吻|亲|去|走|带|再|让|要|为什么|怎么|什么|谁|吗|？|\\?|告诉|别|不')  # 这句里还有别的要求
 
 
+FILLER_WORD = re.compile('笑|看着|看她|看他|望着|望向|看向|对视|点头|点了|肩膀|嘴角|眼睛弯|眼里|等她|等他|呼吸|同框|听着|听他|听她|沉默|眨|歪头|侧头|挠|后颈|抿嘴|收拢')
+FILLER_NOT = re.compile('吻|拿|递|接过|脱|穿|走|跑|推|拉|抱|搂|环|摸|抚|碰|握|放下|放到|喂|吃|喝|倒|切到|行驶|骑|跳|踢|泼|煮|夹|修|拧|唱|哼|打开|关上|坐下|站起|躺|扑|翻身|亲')
+
+
+def is_filler(b):
+    """V2.3：这一拍没有台词，只有对视、笑、点头这类表情，没有新的动作或信息。"""
+    return not (len(b) > 1 and b[1]) and bool(FILLER_WORD.search(str(b[0]))) and not FILLER_NOT.search(str(b[0])) and not str(b[2]).startswith('空镜')
+
+
+def trim_filler(sp, keep):
+    """V2.3（Vicky：前两幕末尾没什么表达，比较浪费，不要硬凑尴尬的笑）：删结尾没有表达的拍子，中间最多留一拍反应。"""
+    s2 = sp.get('seg2') or []; z = (sp.get('zh') or {}).get('seg2') if isinstance(sp.get('zh'), dict) else None; cut = []
+    def drop(i):
+        cut.append(str(s2[i][0])[:20]); s2.pop(i)
+        if isinstance(z, list) and i < len(z): z.pop(i)
+    while len(s2) > keep and is_filler(s2[-1]): drop(len(s2) - 1)
+    mid = [i for i, b in enumerate(s2[:-1]) if is_filler(b)]
+    for i in reversed(mid[1:]):
+        if len(s2) > keep: drop(i)
+    if cut: sp['filler_cut'] = cut
+
+
+SING_ASK = re.compile('唱(首|歌|一首|一句|一段|给|个|点)|哼(首|歌|一首|一段|给|个)|(给我|你|我也|我来|我给你|我)唱')
+SHE_SINGS = re.compile('我(也|来|先)?(给你|给他)?(唱|哼)|唱给他')
+
+
+def settle_song(sp, text):
+    """V2.3：她要唱歌时一定用歌单里的歌（视频模型唱不了歌）。歌声播放时叠上去，这里定是哪首、从第几拍开始，唱的那几拍清掉台词。"""
+    songs = (L.AUDIO_BANK.get('songs') or {}); s2 = sp.get('seg2') or []
+    want = sp.get('song') if isinstance(sp.get('song'), dict) else {}
+    sid = str(want.get('id') or '')
+    asked = bool(SING_ASK.search(text or ''))
+    if not songs or (sid not in songs and not asked) or not s2: sp['song'] = None; return
+    if sid not in songs:
+        who = '她' if SHE_SINGS.search(text or '') else 'he'
+        pool = [k for k, v in songs.items() if v.get('who') == who] or list(songs)
+        road = bool(re.search('摩托|骑|海|沙滩|公路', str(sp.get('posture') or '') + str(sp.get('location') or '')))
+        sid = next((k for k in pool if (songs[k].get('mood') == 'road') == road), pool[0])
+    idx = want.get('beat') if isinstance(want.get('beat'), int) and 0 <= want.get('beat') < len(s2) else next((i for i, b in enumerate(s2) if re.search('唱|哼', str(b[0]))), next((i for i, b in enumerate(s2) if not str(b[2]).startswith('空镜')), 0))
+    who = songs[sid].get('who'); name = '她' if who == '她' else '他'
+    if not re.search('唱|哼', str(s2[idx][0])): s2[idx][0] = f'{name}在唱歌，看着对方，' + str(s2[idx][0])
+    n = len(s2); step = 15 / n; beats = [i for i in range(idx, n) if i * step < idx * step + float(songs[sid].get('dur') or 12)]
+    z = (sp.get('zh') or {}).get('seg2') if isinstance(sp.get('zh'), dict) else None
+    for i in beats:
+        s2[i][1] = ''
+        if isinstance(z, list) and i < len(z): z[i] = ''
+    sp['song'] = {'id': sid, 'beat': idx, 'beats': beats, 'who': who}
+
+
 def route_mode(sp, mode, text=''):
-    """V1.7：mode=auto 时用导演层写的 dur_mode；内容多（吻戏、显形、换场、配角）一律 5+15；导演层写 5+15 但她这句只有简单确认、内容也确实不多时走 5+10。拿不准 5+15。"""
+    """V2.3（Vicky：优先 5+15，末尾没什么表达才用 5+10）：吻戏、唱歌、亲密、配角、骑行一定 5+15；其余先删掉没有表达的拍子，删完不超过 4 拍就 5+10。"""
+    sp['seg2'] = [list(b) + [''] * (4 - len(b)) for b in (sp.get('seg2') or [])]
+    settle_song(sp, text)
     if mode != 'auto': return mode
+    ride = sum(1 for b in sp['seg2'] if re.search('行驶|骑行|疾驰|飞驰', str(b[0]))) >= 2
+    heavy = [k for k, v in (('亲密', int(sp.get('intimacy') or 0) >= 2), ('吻戏', sp.get('kiss')), ('唱歌', sp.get('song')), ('配角', sp.get('cast')), ('其他角色', sp.get('extras')), ('行进', ride)) if v]
     want = str(sp.get('dur_mode') or '').strip()
-    heavy = [k for k, v in (('亲密', int(sp.get('intimacy') or 0) >= 2), ('穿着变化', WEAR_ACT.search(' '.join(str(b[0]) for b in sp.get('seg2') or []))), ('吻戏', sp.get('kiss')), ('换场', sp.get('scene_changed')), ('配角', sp.get('cast')), ('其他角色', sp.get('extras'))) if v]
     if heavy:
         if want == '5+10': sp['dur_upgraded'] = heavy
         return '5+15'
-    if want != '5+10' and LIGHT_ASK.search(text or '') and not LIGHT_NOT.search(text or '') and len(text or '') <= 14: sp['dur_lightened'] = True; return '5+10'
-    if want == '5+10' and len(sp.get('seg2') or []) > 4: sp['dur_upgraded'] = ['拍子多']; return '5+15'  # 写了很多拍就是内容多（她这句很轻时上一条已经走 5+10，多的拍子每拍短一点）
-    return '5+10' if want == '5+10' else '5+15'
+    trim_filler(sp, 3)
+    if len(sp['seg2']) <= 4 or (want == '5+10' and len(sp['seg2']) <= 5): return '5+10'
+    return '5+15'
 
 
 WEAR_ACT = re.compile('脱|解开|解下|褪|滑下|滑落|拨开|敞开|掀开|扯开|推开|穿上|穿回|穿好|套上|拿起外套|披上|披到|披着|系上|扣上|扣好|换上|还给')

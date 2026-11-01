@@ -1,0 +1,114 @@
+{
+ "bgm": {
+  "home": {
+   "desc": "日常、轻松的合租生活",
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/d9a6778ce61c4464aa84633f386a8fa8/bgm_home.mp3"
+  },
+  "trust": {
+   "desc": "谈开之后的理解和安心",
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/bb8ec917686f4bcf8cee83301b9cf04c/bgm_trust.mp3"
+  },
+  "proximity": {
+   "desc": "靠近、心动、吻和日落",
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/0741de70e707421da6604fa2fd262947/bgm_proximity.mp3"
+  },
+  "tension": {
+   "desc": "误会、紧张",
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/b012cdb730f7478e892b27e5926ca433/bgm_tension.mp3"
+  },
+  "work": {
+   "desc": "修车店里专注做事",
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/e9f8e33b17204a45bf7ed5fada0834a3/bgm_work.mp3"
+  },
+  "ride": {
+   "desc": "骑车兜风，自由开心",
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/16ffa3a286c245b4a5cb7b9dda7946d1/bgm_ride.mp3"
+  }
+ },
+ "songs": {
+  "song_he_morning": {
+   "who": "he",
+   "mood": "morning",
+   "desc": "慢、温柔，适合清晨和室内",
+   "dur": 12.8,
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/9909f0a4e65b4106900c3b867ee1a4f8/SONG_HE_MORNING.norm.mp3",
+   "lines": [
+    {
+     "en": "Stay a little longer in the morning light.",
+     "zh": "再多留一会儿，在这晨光里。",
+     "s": 0.0,
+     "e": 5.24
+    },
+    {
+     "en": "I don't need an answer, just you by my side.",
+     "zh": "我不要答案，只要你在身边。",
+     "s": 7.66,
+     "e": 12.66
+    }
+   ]
+  },
+  "song_he_road": {
+   "who": "he",
+   "mood": "road",
+   "desc": "轻松、自由，适合路上和海边",
+   "dur": 10.7,
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/6684a12f899f4d05b839fff3293ccf3c/SONG_HE_ROAD.norm.mp3",
+   "lines": [
+    {
+     "en": "Wind on the coast road, hold on to me.",
+     "zh": "海边公路的风里，抓紧我。",
+     "s": 0.0,
+     "e": 5.2
+    },
+    {
+     "en": "Nowhere to be now, just you and the sea.",
+     "zh": "哪儿也不用去，只有你和海。",
+     "s": 4.9,
+     "e": 10.620000000000001
+    }
+   ]
+  },
+  "song_she_morning": {
+   "who": "她",
+   "mood": "morning",
+   "desc": "轻快、带点调侃，适合室内和安静的时候",
+   "dur": 12.0,
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/849779c1cbd848a199f0c69078be5f70/SONG_SHE_MORNING.norm.mp3",
+   "lines": [
+    {
+     "en": "You said it was acting, I knew it wasn't true.",
+     "zh": "你说是在演，我知道不是。",
+     "s": 0.0,
+     "e": 4.14
+    },
+    {
+     "en": "So I'm singing it out loud now, it was always you.",
+     "zh": "所以我大声唱出来，一直都是你。",
+     "s": 7.15,
+     "e": 11.940000000000001
+    }
+   ]
+  },
+  "song_she_road": {
+   "who": "她",
+   "mood": "road",
+   "desc": "明亮、开心，适合路上和海边",
+   "dur": 11.0,
+   "url": "https://storage.googleapis.com/waku-core-aicap/uploads/usr_4a6e5fb234d64da0a9429e519b299f07/3e8afcc207804290b229c1c9e7da8607/SONG_SHE_ROAD.norm.mp3",
+   "lines": [
+    {
+     "en": "Take me down the coast road, don't slow down for me.",
+     "zh": "带我沿着海边走，别为我减速。",
+     "s": 0.0,
+     "e": 4.58
+    },
+    {
+     "en": "Hold my hand and sing along, it's just you and me.",
+     "zh": "牵着我的手一起唱，只有你和我。",
+     "s": 4.86,
+     "e": 10.200000000000001
+    }
+   ]
+  }
+ }
+}

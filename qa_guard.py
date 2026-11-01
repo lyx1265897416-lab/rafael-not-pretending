@@ -16,9 +16,9 @@ HER_URL = _L.TU['her']  # 她：正面头像 + 全身正面 + 多角度合图
 
 CHECK = """图片1是一部观众第三视角互动剧的一帧画面：画面里应该同时有男主 Rafael 和女主（她），Rafael 在画面左侧、她在画面右侧。图片2是男主的身份母版，图片3是女主的身份母版（判断是不是同一个人以它们为准）。下一段视频会从这一帧接着生成，所以这一帧必须干净。请按下面的锁定项检查，只报你在画面上确实看到的问题：
 1. 画面里除了男主、女主{allowed}还有没有其他人（路人、背影、人影、半透明人头）？同一个人出现两次也算。
-2. 女主在不在画面里、脸能不能看清？女主长相和图片3比是不是明显换了人（脸型、五官、眼睛、年龄、变得幼态）？她应为：白皙皮肤、灰蓝色眼睛、鼻梁淡雀斑、很长的米金色层次长发（浅棕发根，不是银灰也不是金黄）；奶油色长袖开衫，里面奶油色和黑色条纹针织上衣，下身奶油白阔腿长裤（在床上时可能盖在被子里）。发色变成金黄或深棕、头发变短变卷、开衫换成别的款式颜色、条纹上衣换了、裤子换了，都算问题（kind=her）。
+2. 女主在不在画面里、脸能不能看清？女主长相和图片3比是不是明显换了人（脸型、五官、眼睛、年龄、变得幼态）？她应为：白皙皮肤、灰蓝色眼睛、鼻梁淡雀斑、很长的米金色层次长发（浅棕发根，不是银灰也不是金黄）；奶油色细罗纹长袖开衫（短款到腰，不是粗针毛衣），里面奶油色和黑色条纹针织上衣，下身奶油白阔腿长裤（在床上时可能盖在被子里）。发色变成金黄或深棕、头发变短变卷、开衫换成别的款式颜色、条纹上衣换了、裤子换了，都算问题（kind=her）。
 3. 男主服装：应为褪色炭灰色圆领 T 恤、浅色水洗蓝牛仔裤。换成别的衣服或颜色算问题。
-4. 男主标志：右侧颈部黑色荆棘纹身、粗银链、两条小臂满臂纹身。能看到这些部位时纹身或银链不见了、换了样子，算问题（kind=accessory）。有没有多出戒指、手表、手套？
+4. 男主标志：右侧颈部黑色荆棘纹身、粗银链、只有右臂满臂纹身（左臂干净）。能看到这些部位时纹身或银链不见了、换了样子，算问题（kind=accessory）。有没有多出戒指、手表、手套？
 5. 男主瞳色：应为深棕色。变成金色、灰色、发光算问题。（看不到眼睛就不报）
 6. 男主长相：和图片2比，是不是明显换了人（脸型、五官、年龄、肤色不同）、变老、长出胡茬、头发变长或变整齐？
 7. 有没有可读的文字、乱码、手机界面、图标、招牌字样？门、墙面、纸张、衣服上有没有徽章、品牌标志、字母？
@@ -77,7 +77,7 @@ def _edit(prompt, images, timeout):
 KEY_MODEL = 'google/gemini-3.1-flash-lite-image'  # 2026-11-01 实测：同一条指令 22.8 秒、约 $0.035；Waku 通道排队时 65–120 秒，等不起
 
 
-ANCHOR_DIFF_MAX = 70  # 回正可以改构图（两轮之间隔着选择点，看不出跳），差到这个程度才是换了地点
+ANCHOR_DIFF_MAX = 120  # 回正可以改构图（末帧是吻戏近景时回正会拉远，第 11–14 轮差 86–98 被拒，长相衣服又漂了），差到这个程度才是换了地点
 
 
 def key_frame(prompt, images, out, timeout=45, hedge=2):
@@ -120,7 +120,7 @@ def fix(frame_url, issues, timeout=240, keep_hands=False, worn=()):
     prompt = ('Edit Image 1 minimally. Fix only these problems: ' + '；'.join(issues) + '。 '
               'Keep everything else in Image 1 pixel-faithful: the same background, location, lighting, camera angle, shot size, crop, both people\'s head sizes and positions, poses and expressions. '
               'There are exactly two people: the man (Rafael) on the left side of the picture and the woman on the right side. '
-              'Use Image 2 only as the reference for the man\'s face, messy black hair and dark brown eyes. His outfit: a faded charcoal crew-neck T-shirt and light washed blue jeans; thick silver chain, black thorn tattoo on the right side of his neck, tattoo sleeves on both forearms; no rings, no watch, clean-shaven. '
+              'Use Image 2 only as the reference for the man\'s face, messy black hair and dark brown eyes. His outfit: a faded charcoal crew-neck T-shirt and light washed blue jeans; thick silver chain, black thorn tattoo on the right side of his neck, one full tattoo sleeve on his right arm only, left arm clean; no rings, no watch, clean-shaven. '
               'Use Image 3 only as the reference for the woman\'s face, hair and outfit: pale skin, grey-blue eyes, faint freckles, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; '
               'she wears a cream long-sleeved cardigan over a cream-and-black striped knit top and cream wide-leg trousers; slender pale hands, short rounded nude nails, no rings, no bracelets, no watch. '
               'Do not add anything new. Only these two people are in the picture. No readable text. Same semi-realistic 2.5D character render style.')

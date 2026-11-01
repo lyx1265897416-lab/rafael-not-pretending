@@ -35,3 +35,7 @@ tests/key_*
 tests/anchor_cmp.jpg
 tests/dry_haiku.log
 tests/run_v22*.log
+audio-bank/*.mp3
+audio-bank/*.job
+audio-bank/gen.log
+tests/bike_src.jpg

@@ -91,7 +91,36 @@
     labelEl.textContent = cur.label || ''; labelEl.hidden = !cur.label;
     track.classList.toggle('free', !!cur.free);
   }
+  // V2.3：配乐和歌声。预先生成好的音频按视频时间叠上去，不影响生成速度。mix = {bgm: url, song: {url, seg, at, dur}}
+  const bgmEl = new Audio(), songEl = new Audio(); bgmEl.loop = true; bgmEl.volume = 0; let mix = null, bgmVol = 0, duckV = null, unlocked = false;
+  const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  function setMix(m) {
+    mix = m && (m.bgm || m.song) ? m : null;
+    if (mix && mix.bgm && bgmEl.dataset.src !== mix.bgm) { bgmEl.dataset.src = mix.bgm; bgmEl.src = mix.bgm; bgmEl.load(); }
+    if (mix && mix.song && songEl.dataset.src !== mix.song.url) { songEl.dataset.src = mix.song.url; songEl.src = mix.song.url; songEl.load(); }
+  }
+  function mixTick() {
+    const v = cur && playing() ? active() : null;
+    const on = !!(v && !v.paused && mix);
+    let singing = false;
+    if (on && mix.song && cur.i === mix.song.seg) {
+      const t = v.currentTime - mix.song.at;
+      if (t >= 0 && t < (mix.song.dur || 12)) {
+        singing = true;
+        if (songEl.paused) { songEl.currentTime = t; songEl.play().catch(() => {}); }
+        else if (Math.abs(songEl.currentTime - t) > 0.7) songEl.currentTime = t;
+      }
+    }
+    if (!singing && !songEl.paused) songEl.pause();
+    if (mix && mix.song && v) { v.volume = singing ? 0.2 : 1; duckV = v; } else if (duckV) { duckV.volume = 1; duckV = null; }
+    const want = on && mix.bgm ? (singing ? 0.1 : 0.3) : 0;
+    bgmVol += Math.sign(want - bgmVol) * Math.min(0.03, Math.abs(want - bgmVol)); bgmEl.volume = bgmVol;
+    if (want > 0 && bgmEl.paused) bgmEl.play().catch(() => {});
+    if (want === 0 && bgmVol < 0.01 && !bgmEl.paused) bgmEl.pause();
+    bgmEl.playbackRate = songEl.playbackRate = rate;
+  }
   const RT = window.RT = {
+    mixState() { return { bgm: !bgmEl.paused, bgmVol: +bgmEl.volume.toFixed(2), song: !songEl.paused, songT: +songEl.currentTime.toFixed(1), mix: !!mix }; },
     init(o) {
       o = o || {}; drama = o.drama || drama; if (o.zh) zh = o.zh; if (o.isPlaying) isPlaying = o.isPlaying; ignoreSel = o.ignore || ''; RT.destroy();
       stage = document.querySelector(o.stage || '#stage');
@@ -119,6 +148,7 @@
       track.addEventListener('pointerup', stop); track.addEventListener('pointercancel', stop);
       bar.addEventListener('click', e => e.stopPropagation());
       if (!once) { document.addEventListener('click', () => { if (menu) menu.hidden = true; }); }
+      if (!once) { document.addEventListener('pointerdown', () => { if (unlocked) return; unlocked = true; [bgmEl, songEl].forEach(a => { if (!a.src) { a.src = SILENT; a.play().then(() => a.pause()).catch(() => {}); } }); }, true); setInterval(mixTick, 100); }
       stage.addEventListener('click', e => {
         if (!playing() || !cur) return;
         if (e.target.closest('button,input,textarea,select,a,form,label,#sheet,#menu,#liveWait,.card,#rtMenu' + (ignoreSel ? ',' + ignoreSel : ''))) return;
@@ -127,7 +157,7 @@
       });
       if (!once) document.addEventListener('keydown', e => { if (stage && e.code === 'Space' && playing() && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); toggle(); } });
       once = true;
-      stage.addEventListener('play', () => applyRate(), true);
+      stage.addEventListener('play', () => { if (stage) applyRate(); }, true);
       stage.addEventListener('loadedmetadata', e => { e.target.dataset.rtSrc = e.target.currentSrc; e.target.playbackRate = rate; paint(); }, true);
       applyRate();
       const me = (RT._loop = (RT._loop || 0) + 1);
@@ -136,11 +166,12 @@
     },
     begin(o) {
       cur = { key: o.key, parts: o.parts, i: 0, label: o.label || '', jump: o.jump || null, free: !!o.free || seen(o.key) };
+      setMix(o.mix);
       applyRate(); return RT;
     },
     part(i) { if (cur) cur.i = i; applyRate(); },
     done(k) { const key = k || (cur && cur.key); if (!key) return; const a = seenAll(); a[key] = 1; store.set(seenKey(), JSON.stringify(a)); if (cur && cur.key === key) cur.free = true; },
-    clear() { cur = null; },
+    clear() { cur = null; mix = null; },
     destroy() { RT._loop = (RT._loop || 0) + 1; cur = null; [pausedEl, bar, menu, hintEl].forEach(x => x && x.remove()); stage = null; bar = null; menu = null; },
     setVoices(fn) { voices = fn; },
     seen,

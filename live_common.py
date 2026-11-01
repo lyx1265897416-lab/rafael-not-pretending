@@ -33,13 +33,16 @@ CAST = {
     'Cole': ('Cole：三十一岁男人，健壮，方圆脸，晒过的浅麦色皮肤，灰蓝色眼睛，沙棕色短发和修剪整齐的短胡子；深烟草色麂皮短夹克敞开，里面象牙色棉衬衫。长相和衣着以他的身份母版为准。', TU['cole']),
     'Ryan': ('Ryan：二十二岁男人，瘦削，浅象牙色皮肤，鼻梁有淡雀斑，榛色眼睛，蓬松的铜棕色短发，干净无胡须；敞开的深靛蓝短袖工装衬衫，黑色领边，黑色圆领内搭。长相和衣着以他的身份母版为准。', TU['ryan']),
 }
-HE_LOOK = ('Rafael：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，凌乱翘起的黑色短发、几缕垂在额前；右侧颈部黑色荆棘纹身，一条粗银链，两条小臂满臂纹身；身材修长不夸张，肤色自然、不晒黑，脸上没有污点和沙粒。'
-       '日常穿着：褪色炭灰色圆领 T 恤，浅色水洗蓝牛仔裤；手指上空无一物。他的长相和服装全程不变，以参考的身份母版为准。')
+HE_LOOK = ('Rafael：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，浓密凌乱的黑色层次短发（不卷、不长、不整齐，后颈盖到发际，几缕垂在额前）；右侧颈部黑色荆棘纹身，一条粗银链，只有右臂一条满臂纹身（肩到手腕，墨黑带橙棕的齿轮几何图案），左臂干净没有纹身；身材修长不夸张，肤色自然、不晒黑，脸上没有污点和沙粒。'
+       '日常穿着：做旧炭灰色圆领 T 恤（不是纯黑，不是棕色，没有拼色），做旧水洗蓝直筒宽腿牛仔裤（膝盖发白、一处小破洞），黑色厚底皮靴；手指上空无一物。他的长相和服装全程不变，以参考的身份母版为准。')
 HER_FP = '她的手外形全程固定：纤细白皙的女性双手，指甲短而圆、裸色素甲，手指和手腕上空无一物，袖口是奶油色开衫的长袖。'
 HER = ('她：二十多岁的成年女人，白皙皮肤，成熟精致的脸，高颧骨、窄下颌、细直的鼻子，灰蓝色眼睛，柔和的灰褐色眼妆，鼻梁上淡淡的雀斑，豆沙玫瑰色的饱满嘴唇，不显幼态；很长的米金色层次长发（浅棕发根、沙色挑染，中分，不是银灰也不是金黄）、脸旁有碎发；'
-       '奶油色长袖开衫，里面奶油底灰黑横条的一字领无袖细罗纹针织上衣（没有翻领、没有纽扣、没有短袖），奶油白阔腿长裤，条纹系带腰带，黑色平底鞋；'
+       '奶油色细罗纹长袖开衫（短款到腰，不是粗针毛衣），里面奶油底灰黑横条的一字领无袖细罗纹针织上衣（没有翻领、没有纽扣、没有短袖），奶油白阔腿长裤（腰部不露肤），腰间一条奶油灰黑条纹系带，黑色平底鞋（不是运动鞋、不是凉鞋）；'
        '指甲短而圆、裸色素甲，手指和手腕上空无一物。她的长相、发型和服装全程不变，严格以她的身份母版（正面头像、全身正面、多角度）为准。她的表情自然克制，情绪在眼神里。')
 WOLF = ''
+import json as _json2
+_ab = Path(__file__).resolve().parent / 'masters' / 'audio_bank.json'
+AUDIO_BANK = _json2.loads(_ab.read_text()) if _ab.exists() else {}  # V2.3：预先生成好的配乐和歌（每部剧自己一份），没有就不用
 SEAM = '第一个镜头接着上一刻往下演：两个人的姿势、手的位置和道具的状态都和上一刻一样，不把上一刻已经做完的动作再做一遍；换景别时同时换机位，不在同一个机位上突然放大缩小。'  # V1.2：评分里接缝跳回首帧、同轴跳切扣分最多
 KISS = '吻戏的拍法（V1.4）：靠近只用一个干脆的动作，不慢慢凑近；从嘴唇贴上开始，到动作里写明分开之前，是同一次连续的吻，正常速度，动作一直在细微地变化（头部角度微调、他的手在她背上收紧、她的手指攥紧他的肩），不慢动作、不定格、不僵住；切镜之后的镜头一开始两人就已经在接吻，接着上一镜继续，不重新靠近，不中途分开再吻；手的特写里手一定在动。两人的五官、发型、服装和男左女右在吻中保持不变：每个接吻镜头里 Rafael 的脸都在画面左半边、脸朝画面右侧，她的脸都在画面右半边、脸朝画面左侧，近景和侧面近景也不对调（V1.4 便携包自测第 1 轮最后一个接吻近景两人左右对调）。'
 ACT = '表演自然：Rafael 放松时带一点懒散的笑意，认真时笑意收住、目光聚焦，说话轻缓，不压嗓、不耳语；她说话轻而清楚；情绪在眼神和嘴角。'
@@ -95,7 +98,7 @@ def steady(amb):
 def tail(amb, cast):
     voice = 'Rafael 是二十多岁偏低、松弛、带一点颗粒和笑意的美式英语男声，她是轻柔清亮的美式英语女声'
     return (f'只说上面写出的英文台词，每句只说一遍；{voice}；说话的人口型同步，不说话的人闭着嘴。保留{amb}，没有背景音乐。'
-            '画面里的东西只因看得见的动作出现和改变，同一样东西同一时刻只有一个，不悬空、不穿进身体；画面里的手只长在 Rafael 和她身上，每人最多两只，两人的手不粘连。门、墙面、纸张都是素面的，衣服上没有文字和标志。每一秒都是铺满整个竖屏的完整画面，从头到尾亮度和色调不变；不出现画中画、相框、边框、黑边、暗角、四周压暗或变模糊、中间一块亮框，也不突然变色、变暗、变亮。约束：无字幕，无文字，无标志，无旁白，除写到的人物外没有其他人。')
+            '一切按现实的物理规律：没人骑、没人开的车不会动，停着的车熄火停稳在路面上，同一个地点只有一辆；东西不会自己移动或变形，人不会悬空。画面里的东西只因看得见的动作出现和改变，同一样东西同一时刻只有一个，不悬空、不穿进身体；画面里的手只长在 Rafael 和她身上，每人最多两只，两人的手不粘连。门、墙面、纸张都是素面的，衣服上没有文字和标志。每一秒都是铺满整个竖屏的完整画面，从头到尾亮度和色调不变；不出现画中画、相框、边框、黑边、暗角、四周压暗或变模糊、中间一块亮框，也不突然变色、变暗、变亮。约束：无字幕，无文字，无标志，无旁白，除写到的人物外没有其他人。')
 
 
 CAM_WORDS = [('看着她', '看着镜头'), ('看向她', '看向镜头'), ('盯着她', '盯着镜头'), ('朝她', '朝镜头'), ('向她', '向镜头'), ('对她', '对着镜头'),
@@ -108,6 +111,7 @@ def cam(t):
     """第三视角：她在画面里，分镜里的“她”照写；只保留物件写法的修正。"""
     for w in ('工单', '账单', '文件', '协议'):  # V0.17c：纸写成没有可读文字的纸
         if w in t and '素面' not in t: t = t.replace(w, w + '（一张没有任何可读文字的纸）', 1); break
+    if re.search('泡面|方便面|包装|袋子|盒子|罐|瓶', t) and '没有文字' not in t: t += '（包装是素面的，没有任何文字、品牌和图案）'  # V2.3：泡面袋上出现了编造的品牌字
     return t
 
 
@@ -316,7 +320,7 @@ def _wear_note(w):
 
 
 RIDE_ON = re.compile('行驶|骑行|疾驰|飞驰|驶过|驶向|驶在')
-RIDE_MOVE = '（摩托车正在公路上向画面左方匀速行驶：车轮转动，路面和路边的护栏向画面右方飞快后退，头发和衣角被风吹向后方，两人的脚都踩在脚踏上；她坐在后座环着他的腰）'
+RIDE_MOVE = '（黑色旧摩托车：黑色油箱、棕色皮座、圆形车灯，车身没有文字和标志，摩托车正在公路上向画面左方匀速行驶：车轮转动，路面和路边的护栏向画面右方飞快后退，头发和衣角被风吹向后方，两人的脚都踩在脚踏上；她坐在后座环着他的腰）'
 CAR_MOVE = '（车正在路上行驶：车窗外的景物向后掠过，两人随车身轻微晃动）'
 
 
@@ -350,7 +354,8 @@ def prompts(sp, mode, *a, **kw):
     start, end = sp.get('wardrobe_start') or {}, sp.get('wardrobe_end') or {}
     use = sp.get('use_key')  # V2.0：'bridge' 不换地点，第 1 段首尾帧演变化、第 2 段首帧=关键帧；'ref' 换地点（或有 Selene），第 2 段第一张参考图=关键帧
     custom = bool(sp.get('wardrobe_changed'))
-    looks = '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items())
+    def looks_of(text):  # V2.3：只写这一段用到的东西（原来全写，第 7 轮小锅、泡面、碗跟到了修车店，第 12 轮跟到了沙滩）
+        return '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items() if k in text or k[:2] in text)
     res = []
     for k, (d, p, f) in enumerate(out):
         w_here = end if (k == 1 and use) else start
@@ -395,11 +400,35 @@ def prompts(sp, mode, *a, **kw):
         if custom or po or ho:
             p = _mark_shots(p, beats, w_here if custom else {}, w1 if custom else {}, po, ho)
         elif any(RIDE_ON.search(str(b[0])) for b in beats): p = _mark_shots(p, beats, {}, {})
+        looks = looks_of(' '.join(str(b[0]) for b in beats) + str(sp.get('holding_end') or ''))
         if looks: p += f'固定外观（全程不变）：{looks}。'
+        if any(RIDE_ON.search(str(b[0])) for b in beats) and TU.get('vehicle') and not f: p = '最后一张参考图是这辆车：款式和颜色照它，它的白底不进画面。' + p
+        sg = sp.get('song')
+        if sg and k == 1: p = _sing_marks(p, sg, beats)
         p += TAIL_V18
         if k == 1 and int(sp.get('intimacy') or 0) >= 3: p += TAIL_INTIMATE
         res.append((d, p, f))
     return res
+
+
+def _sing_marks(p, sg, beats):
+    """V2.3：唱的那几拍写明嘴跟着旋律动，没有说话声（歌声播放时叠上去）。"""
+    who = '她' if sg.get('who') == '她' else '他'; n = [-1]
+    def sub(m):
+        n[0] += 1
+        return m.group(0) + (f'（{who}在轻声唱歌：嘴跟着很慢的旋律一开一合，表情投入，看着对方；这一拍视频里没有说话声）' if n[0] in (sg.get('beats') or []) else '')
+    return re.sub(r'镜头\d+（[^）]*）【[^】]*】', sub, p)
+
+
+def mix_of(sp):
+    """V2.3：这一轮要叠上去的配乐和歌声。都是预先生成好的，不增加等待。"""
+    out = {}; bgm = (AUDIO_BANK.get('bgm') or {}).get(str(sp.get('bgm') or ''))
+    if bgm: out['bgm'] = bgm['url']
+    sg = sp.get('song')
+    if sg:
+        v = (AUDIO_BANK.get('songs') or {}).get(sg['id']) or {}
+        n = len(sp.get('seg2') or [1]); out['song'] = {'url': v.get('url'), 'seg': 1, 'at': round(sg['beat'] * 15 / n + 0.2, 2), 'dur': v.get('dur')}
+    return out
 
 
 def anchor_prompt(state, issues, w=None):
@@ -410,8 +439,8 @@ def anchor_prompt(state, issues, w=None):
             'Image 2 is the man\'s face and hair reference (Rafael), Image 3 is the woman\'s face and hair reference. Only correct what has drifted away from them. '
             + (f'The state of this moment, keep it exactly (Chinese): {state}。 ' if state else '')
             + (f'Also fix (Chinese): {"；".join(issues)}。 ' if issues else '')
-            + 'He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, tattoo sleeves on both forearms ending at the wrist, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown. '
-            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. Short nude nails, no earrings, no necklace. '
+            + 'He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, one full tattoo sleeve on his right arm only (ink black and orange-brown gear pattern, ending at the wrist), his left arm has no tattoo, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown, single color. His jeans are washed blue straight wide-leg with faded knees, his boots black leather. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace. '
             'Every object appears only once; there is at most one motorcycle or car. Keep the same semi-realistic high-detail character rendering. Correct anatomy, five fingers on each hand. Add nothing new. No text, no logo, no watermark.')
 
 
@@ -428,13 +457,20 @@ def key_prompt(sp, moved):
             f'Location (Chinese): {place}。 Posture (Chinese): {sp.get("posture_end") or "按画面描述"}。 '
             f'His clothes right now (Chinese): {he}。 Her clothes right now (Chinese): {she}。 Clothes must be exactly these, nothing added back; whatever he has not taken off (trousers, shoes, accessories) keeps the exact color and style it has in Image 1. ' + when
             + (f'Objects (Chinese): {sp.get("holding_end")}。 ' if sp.get('holding_end') else '')
-            + (f'Fixed object looks (Chinese): ' + '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items()) + '。 ' if sp.get('looks') else '')
+            + (f'Fixed object looks (Chinese): ' + '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items() if k in str(sp.get('key')) or k in str(sp.get('holding_end'))) + '。 ' if any(k in str(sp.get('key')) or k in str(sp.get('holding_end')) for k in (sp.get('looks') or {})) else '')
             + (f'Clothes lying on the ground are only the ones he took off, the same color as these: {HE_DEFAULT}. Nothing of hers is on the ground unless written above. ' if w.get('he') else '')
             + 'If his torso is bare: a natural fit build, not a bodybuilder, no oil, the same skin color as his face, lit by the light of this location. '
             + ('Nothing from the previous location comes along: no plates, food, cartons or furniture from it, only what is written under Objects. ' if moved else '')
-            + 'Exactly two people: the man on the left of the frame, the woman on the right, both faces visible. He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, tattoo sleeves on both forearms ending at the wrist, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown. '
-            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. Short nude nails, no earrings, no necklace. '
+            + 'Exactly two people: the man on the left of the frame, the woman on the right, both faces visible. He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, one full tattoo sleeve on his right arm only (ink black and orange-brown gear pattern, ending at the wrist), his left arm has no tattoo, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown, single color. His jeans are washed blue straight wide-leg with faded knees, his boots black leather. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace. '
             'Every object appears only once; there is at most one motorcycle or car. Keep the same semi-realistic high-detail character rendering as Image 1. Correct anatomy, five fingers on each hand. No text, no logo, no watermark.')
+
+
+def _song_rows(sp, cut):
+    sg = sp.get('song'); v = (AUDIO_BANK.get('songs') or {}).get((sg or {}).get('id')) or {}
+    if not sg: return []
+    at = cut[sg['beat']] + 0.2
+    return [{'en': x['en'], 'zh': x.get('zh', ''), 'who': '她' if v.get('who') == '她' else 'Rafael', 's': round(at + x['s'], 1), 'e': round(at + x['e'], 1), 'sung': True} for x in v.get('lines') or []]
 
 
 def line_times(sp, mode):
@@ -450,6 +486,7 @@ def line_times(sp, mode):
             who = str(b[3]) if len(b) > 3 and b[3] else 'Rafael'; who = who.split(':', 1)[-1].split('：', 1)[-1]
             s = cut[i] + 0.2; e = min(cut[i + 1], s + max(1.4, len(str(b[1]).split()) * 0.45 + 0.6))
             rows.append({'en': b[1], 'zh': z[i] if i < len(z) else '', 'who': who, 's': round(s, 1), 'e': round(e, 1)})
+        if k == 'seg2': rows = sorted(rows + _song_rows(sp, cut), key=lambda x: x['s'])
         out[k] = rows
     return out
 

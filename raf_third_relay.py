@@ -227,6 +227,7 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
     elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
     elif no_scene: kw['ref_images'] = [STAGING_URL, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
     else: kw['ref_images'] = [frame_url, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
+    if i == 1 and L.TU.get('vehicle') and 'ref_images' in kw and len(kw['ref_images']) < 5 and any(L.RIDE_ON.search(str(b[0])) for b in (R[rid].get('spec') or {}).get('seg2') or []): kw['ref_images'] = kw['ref_images'] + [L.TU['vehicle']]  # V2.3：摩托每轮款式都在变
     def gen(body):
         sub = W1Client(max_retries=0); job = None
         tries = 4 if first in ('lock', 'bridge') else (5 if 'ref_images' in kw else 2)  # V1.1：参考图段失败多是几秒内被拒、不扣费，先在参考图模式重提 3 次（保住身份母版），第 5 次才退回首帧  # 第三视角 v1：首尾帧锁这几天大约一半任务在 6–15 秒内 generation_failed（同一请求重提就成功），锁帧段最多重提 3 次
@@ -381,13 +382,14 @@ def _worker(rid):
     if r['mode'] not in L.SEG1_LOCK and sp.get('key') and not plain_move and (moved_now or w0 != w1 or sp.get('posture_changed')):
         tk = now(); r['status'] = 'keyframe'; r['mode'] = r['mode']; save(rid)
         try:
-            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], kj)
+            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + ([L.TU['vehicle']] if L.TU.get('vehicle') and re.search('骑|摩托', str(sp.get('posture_end'))) else []), kj)
             r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
             sp['use_key'] = 'ref' if (moved_now or extra) else 'bridge'  # 有身份母版的配角要带参考图，首尾帧模式带不了
         except Exception as e: log('KEYFAIL', rid, str(e)[:200])  # V2.2：不再重试和退回 Waku（曾一次等 195 秒），这一轮按没有关键帧走
         r['key_sec'] = round((now() - tk) / 1000, 1); log('KEY', rid, sp['use_key'], r['key_sec'], 's')
     segs = L.prompts(sp, r['mode'], hands_in_frame=hands_now, set_start=s.get('set') or director.OPEN_SET, stage_start=s.get('staging') or 'bed', seg2_first=L.SEG2_FIRST and not extra, worn='、'.join(w for w in worn_now if w != L.JACKET), jacket_start=jacket_start)
     r['line_times'] = L.line_times(sp, r['mode'])  # V1.8：字幕只在说这句时显示
+    r['mix'] = L.mix_of(sp)  # V2.3：配乐和歌声，播放时叠上去
     r.update(status='generating', director_at=now(), spec=sp, prompts=[p for _, p, _ in segs], model=MODEL, frame_from=s.get('frame_from'),
              lines={'seg1': [b[1] for b in sp['seg1']], 'seg2': [b[1] for b in sp['seg2']]}, zh=sp.get('zh', {}), next=sp.get('next'))
     r['segs'] = [{'dur': d, 'mode': '首尾帧到关键帧' if f == 'bridge' else '首尾帧锁' if f == 'lock' else ('首帧续接' if f else '参考图'), 'status': 'generating'} for d, _, f in segs]; save(rid)

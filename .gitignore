@@ -1,0 +1,14 @@
+# 口令和运行数据不进仓库
+token.txt
+public_url.txt
+urls.json
+rounds/
+frames/
+logs/
+tests/S*/
+site
+docs/media/tm/
+__pycache__/
+*.pyc
+masters/*.job
+.DS_Store

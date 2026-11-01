@@ -24,7 +24,7 @@ def main(sid):
             mp4 = od / f'R{n:02d}_{i}.mp4'
             if not mp4.exists(): U.urlretrieve(s['url'], mp4)
             png = od / f'R{n:02d}_{i}.png'
-            rows = 2 if s['dur'] >= 10 else 1
+            rows = max(1, round(s['dur'] / 5))  # 每行 10 帧 = 5 秒；写死 2 行会漏掉 15 秒段的最后 5 秒
             subprocess.run([L.FFMPEG, '-v', 'error', '-y', '-i', str(mp4), '-vf', f'fps=2,scale=144:-2,tile=10x{rows}', '-frames:v', '1', str(png)], check=True)
             parts.append(png)
         subprocess.run([L.FFMPEG, '-v', 'error', '-y', *sum([['-i', str(p)] for p in parts], []), '-filter_complex', f'vstack=inputs={len(parts)}', '-q:v', '3', str(sheet)], check=True)

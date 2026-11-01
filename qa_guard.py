@@ -2,6 +2,7 @@
 check(jpg) 用视觉模型按锁定项检查，返回 {ok, issues:[...]}；fix(url, issues) 用 nano-banana-pro/edit 参考身份母版把这一帧修干净，返回新图地址。
 都在观众看视频、做选择的时候后台完成，不增加等待。"""
 import base64, json, re, subprocess, time
+from pathlib import Path
 from urllib import request as U
 import director, live_common as _L
 
@@ -9,11 +10,13 @@ VLM = 'anthropic/claude-sonnet-5.5'
 FACE_URL = _L.TU['face']  # 白底正面头像身份母版
 OUTFIT_URL = _L.TU['outfit']  # 裁成上半身（全身站姿的母版会把画面往全身拉）
 
+RAF_HEAD = _L.TU.get('face_head') or _L.TU['face']  # V2.0：只有头和脖子，穿着不是默认时用，T 恤不会被带回来
+HER_HEAD = _L.TU.get('her_head') or _L.TU['her']
 HER_URL = _L.TU['her']  # 她：正面头像 + 全身正面 + 多角度合图
 
 CHECK = """图片1是一部观众第三视角互动剧的一帧画面：画面里应该同时有男主 Rafael 和女主（她），Rafael 在画面左侧、她在画面右侧。图片2是男主的身份母版，图片3是女主的身份母版（判断是不是同一个人以它们为准）。下一段视频会从这一帧接着生成，所以这一帧必须干净。请按下面的锁定项检查，只报你在画面上确实看到的问题：
 1. 画面里除了男主、女主{allowed}还有没有其他人（路人、背影、人影、半透明人头）？同一个人出现两次也算。
-2. 女主在不在画面里、脸能不能看清？女主长相和图片3比是不是明显换了人（脸型、五官、眼睛、年龄、变得幼态）？她应为：白皙皮肤、灰蓝色眼睛、鼻梁淡雀斑、很长的冷调灰金层次长发；奶油色长袖开衫，里面奶油色和黑色条纹针织上衣，下身奶油白阔腿长裤（在床上时可能盖在被子里）。发色变成金黄或深棕、头发变短变卷、开衫换成别的款式颜色、条纹上衣换了、裤子换了，都算问题（kind=her）。
+2. 女主在不在画面里、脸能不能看清？女主长相和图片3比是不是明显换了人（脸型、五官、眼睛、年龄、变得幼态）？她应为：白皙皮肤、灰蓝色眼睛、鼻梁淡雀斑、很长的米金色层次长发（浅棕发根，不是银灰也不是金黄）；奶油色长袖开衫，里面奶油色和黑色条纹针织上衣，下身奶油白阔腿长裤（在床上时可能盖在被子里）。发色变成金黄或深棕、头发变短变卷、开衫换成别的款式颜色、条纹上衣换了、裤子换了，都算问题（kind=her）。
 3. 男主服装：应为褪色炭灰色圆领 T 恤、浅色水洗蓝牛仔裤。换成别的衣服或颜色算问题。
 4. 男主标志：右侧颈部黑色荆棘纹身、粗银链、两条小臂满臂纹身。能看到这些部位时纹身或银链不见了、换了样子，算问题（kind=accessory）。有没有多出戒指、手表、手套？
 5. 男主瞳色：应为深棕色。变成金色、灰色、发光算问题。（看不到眼睛就不报）
@@ -40,10 +43,10 @@ SCENE_DIFF_MAX = 20  # 修图前后画面四周（背景）的平均灰度差，
 SIDE_RULE = '15. 站位（这一刻两人并排坐着）：两人应并排坐、身体侧过来朝向对方，Rafael 在左、她在右。是不是变成面对面坐、或者两人都正对镜头像证件照？是就算问题（kind=staging）。\n'
 
 
-def check(jpg, timeout=60, cast=(), side=False, worn=()):
+def check(jpg, timeout=60, cast=(), side=False, worn=(), state=''):
     b64 = base64.b64encode(open(jpg, 'rb').read()).decode()
     body = {'model': VLM, 'max_tokens': 1200, 'reasoning': {'effort': 'low'},
-            'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': (('剧情里披在她身上的：' + '、'.join(worn) + '（穿在奶油色开衫外面，这是允许的，不算换装）。\n') if worn else '') + CHECK.replace('{allowed}', ('和' + '、'.join(cast) + '（允许出镜的配角）') if cast else '').replace('{side_rule}', SIDE_RULE if side else '')},
+            'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': (('这一刻的真实状态（穿着按它判，优先于下面写的默认服装）：' + state + '。只有画面和它明确矛盾才算问题（脱掉的衣服又穿在身上、该穿着的外套不见了或换了款、该躺着却站着、该在车上却不在），kind=state，level=high；画面里看不到的部位、手里的小东西、脚下的细节都不算。\n') if state else '') + (('剧情里披在她身上的：' + '、'.join(worn) + '（穿在奶油色开衫外面，这是允许的，不算换装）。\n') if worn else '') + CHECK.replace('{allowed}', ('和' + '、'.join(cast) + '（允许出镜的配角）') if cast else '').replace('{side_rule}', SIDE_RULE if side else '')},
                                                       {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b64}},
                                                       {'type': 'image_url', 'image_url': {'url': FACE_URL}},
                                                       {'type': 'image_url', 'image_url': {'url': HER_URL}}]}]}
@@ -71,6 +74,40 @@ def _edit(prompt, images, timeout):
     return j['asset_url']
 
 
+KEY_MODEL = 'google/gemini-3.1-flash-lite-image'  # 2026-11-01 实测：同一条指令 22.8 秒、约 $0.035；Waku 通道排队时 65–120 秒，等不起
+
+
+def key_frame(prompt, images, out, timeout=70):
+    """V2.0：状态关键帧（第 2 段第一张画面），写到本地文件 out。先走 OpenRouter 直连，失败退回 Waku。"""
+    body = {'model': KEY_MODEL, 'modalities': ['image', 'text'], 'image_config': {'aspect_ratio': '9:16'}, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': prompt}] + [{'type': 'image_url', 'image_url': {'url': u}} for u in images]}]}
+    try:
+        req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
+        with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
+        u = ((j['choices'][0]['message'].get('images') or [{}])[0].get('image_url') or {}).get('url') or ''
+        if u.startswith('data:'):
+            Path(out).write_bytes(base64.b64decode(u.split(',', 1)[1])); return 'openrouter'
+    except Exception as e: print('KEYOR', str(e)[:160], flush=True)
+    params = {'prompt': prompt, 'images': images, 'aspect_ratio': '9:16', 'resolution': '1k', 'output_format': 'jpeg'}
+    j = {}
+    for _ in range(4):  # waku 偶尔 fetch failed：请求没到服务端，马上再发
+        r = subprocess.run(['waku', 'gen', 'run', 'google/nano-banana-2.1/edit', '--capability', 'multimodal.generate.image', '--params', json.dumps(params)], capture_output=True, text=True, timeout=150)
+        m = re.search(r'\{.*\}', r.stdout, re.S); j = json.loads(m.group(0)) if m else {}
+        if j.get('asset_url') or j.get('job_id') or 'fetch failed' not in (r.stderr + r.stdout): break
+        time.sleep(1)
+    if not j.get('asset_url') and j.get('job_id'):
+        r = subprocess.run(['waku', 'gen', 'result', j['job_id'], '--wait', '--timeout', '150'], capture_output=True, text=True, timeout=180)
+        m = re.search(r'\{.*\}', r.stdout, re.S); j = json.loads(m.group(0)) if m else {}
+    if not j.get('asset_url'): raise RuntimeError('关键帧没有返回地址：' + (r.stdout[-200:] or r.stderr[-200:]))
+    U.urlretrieve(j['asset_url'], out); return 'waku'
+
+
+def fix_state(frame_url, issues, state, timeout=120):
+    """V2.0：穿着不是默认时，按这一刻真实的穿着和姿态修（默认的 fix 会把脱掉的衣服修回去）。"""
+    prompt = ('Edit Image 1 minimally. Fix only these problems (Chinese): ' + '；'.join(issues) + '。 The state of this moment (Chinese): ' + state + '。 '
+              'Keep everything else pixel-faithful: background, location, lighting, camera angle, crop, both people\'s positions and expressions. Image 2 is only the man\'s face and hair reference, Image 3 is only the woman\'s face and hair reference. Do not add clothes that are not in the state. No readable text. Same semi-realistic character rendering.')
+    return _edit(prompt, [frame_url, RAF_HEAD, HER_HEAD], timeout)
+
+
 def fix_scene(frame_url, set_text, timeout=240):
     """背景变成灰色影棚或纯色时，只把背景换回这个地点。第三视角：两个人都保持原样。"""
     prompt = ('Edit Image 1: replace only the background. Behind the two people, the grey studio or plain backdrop becomes this real location, at the time of day it describes: ' + set_text + '. '
@@ -85,7 +122,7 @@ def fix(frame_url, issues, timeout=240, keep_hands=False, worn=()):
               'Keep everything else in Image 1 pixel-faithful: the same background, location, lighting, camera angle, shot size, crop, both people\'s head sizes and positions, poses and expressions. '
               'There are exactly two people: the man (Rafael) on the left side of the picture and the woman on the right side. '
               'Use Image 2 only as the reference for the man\'s face, messy black hair and dark brown eyes. His outfit: a faded charcoal crew-neck T-shirt and light washed blue jeans; thick silver chain, black thorn tattoo on the right side of his neck, tattoo sleeves on both forearms; no rings, no watch, clean-shaven. '
-              'Use Image 3 only as the reference for the woman\'s face, hair and outfit: pale skin, grey-blue eyes, faint freckles, very long layered cool ash-blonde hair with darker roots; '
+              'Use Image 3 only as the reference for the woman\'s face, hair and outfit: pale skin, grey-blue eyes, faint freckles, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; '
               'she wears a cream long-sleeved cardigan over a cream-and-black striped knit top and cream wide-leg trousers; slender pale hands, short rounded nude nails, no rings, no bracelets, no watch. '
               'Do not add anything new. Only these two people are in the picture. No readable text. Same semi-realistic 2.5D character render style.')
     if any('外套' in w for w in worn): prompt += ' His jacket stays draped over her shoulders on top of her cardigan.'
@@ -103,7 +140,7 @@ def scene_diff(a, b):
     return round(tot / n, 1)
 
 
-SEG_CHECK = """图片1是一段 9:16 视频按时间顺序抽出的 4 帧（左上=第1帧，右上=第2帧，左下=第3帧，右下=第4帧），来自一部观众第三视角的互动剧。图片2是男主 Rafael 的身份母版（凌乱黑发、颈部荆棘纹身、银链、炭灰色 T 恤、水洗牛仔裤）。图片3是女主的身份母版（正面头像、全身正面、多角度）：很长的冷调灰金层次长发，奶油色长袖开衫，奶油和黑色条纹针织上衣，奶油白阔腿长裤。{allowed}
+SEG_CHECK = """图片1是一段 9:16 视频按时间顺序抽出的 4 帧（左上=第1帧，右上=第2帧，左下=第3帧，右下=第4帧），来自一部观众第三视角的互动剧。图片2是男主 Rafael 的身份母版（凌乱黑发、颈部荆棘纹身、银链、炭灰色 T 恤、水洗牛仔裤）。图片3是女主的身份母版（正面头像、全身正面、多角度）：很长的米金色层次长发（浅棕发根，不是银灰也不是金黄），奶油色长袖开衫，奶油和黑色条纹针织上衣，奶油白阔腿长裤。{allowed}
 正确的站位：两人同在一帧时，男主在画面左侧、女主在画面右侧。
 
 先逐帧写清楚看到了什么，再判断：
@@ -136,6 +173,20 @@ def grid(mp4, out):
     fc = ';'.join(f'[{i}:v]scale=300:-2,setsar=1[v{i}]' for i in range(n)) + ';' + ''.join(f'[v{i}]' for i in range(n)) + f'xstack=inputs={n}:layout={lay}'
     subprocess.run([L.FFMPEG, '-v', 'error', '-y', *ins, '-filter_complex', fc, '-frames:v', '1', '-q:v', '3', str(out)], check=True)
     return n
+
+
+def seg_state(mp4, state, timeout=40):
+    """V2.0：穿着或姿态不是默认的那一段，播放前看一遍全程有没有变回去（第 6 轮第 2 段后半段 T 恤又穿回去了）。"""
+    g = Path(str(mp4)).with_suffix('.st.jpg'); n = grid(mp4, g)
+    b64 = base64.b64encode(open(g, 'rb').read()).decode()
+    t = (f'这张图是一段视频按时间顺序等间隔抽的 {n} 帧。这一段全程的状态应该是：{state}。逐格看有没有和它明确矛盾：已经脱掉的衣服穿在身上、该穿着的衣服不见了、该躺着却站着、该在车上却不在。'
+         '空镜、只拍到脸看不出来的格子不算。只输出 JSON：{"bad": true 或 false, "why": "哪一格、什么问题，没有写空"}')
+    body = {'model': VLM, 'max_tokens': 400, 'reasoning': {'effort': 'low'}, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': t}, {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b64}}]}]}
+    req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
+    with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
+    txt = j['choices'][0]['message'].get('content') or ''; g.unlink(missing_ok=True)
+    i = txt.find('{')
+    return json.JSONDecoder().raw_decode(txt[i:])[0] if i >= 0 else {'bad': False, 'why': 'no json'}
 
 
 def seg_check(mp4, cast=(), timeout=60, props=()):

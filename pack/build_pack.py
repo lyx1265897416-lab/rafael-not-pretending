@@ -32,7 +32,7 @@ PACK = {
   {'id': 'K07', 'loc': 'L5', 'role': '朋友追问：Maya 听说了昨晚，问他们是什么关系', 'acts': 'Maya 到店里或门口问；两人按实际约定回答，不借误会占便宜', 'lines': [["We haven't put a name on it.", "我们还没给它起名字。"]], 'out': '朋友知情范围被记下'},
   {'id': 'K08', 'loc': 'L3', 'role': 'Evan 再次联系：怎么回应由她决定', 'acts': '门外传来 Evan 的声音或他出现在楼下；Rafael 先问她想怎么办，不替她出头、不抢话', 'lines': [["Do you want me to listen, or work it out with you?", "你想让我听，还是和你一起解决？"]], 'out': '她的选择被尊重'},
   {'id': 'K09', 'loc': 'L2', 'role': '照顾越界的修复：他替她做了决定，她指出来，他认错', 'acts': '他说清自己理解了什么、改什么，饭不能替代道歉', 'lines': [["I decided for you. Called it helping, but I hadn't heard you out.", "我替你做了决定。说是帮忙，其实没听你说。"]], 'out': '信任往前一步'},
-  {'id': 'K10', 'loc': 'L7', 'role': '第一次约会：沿海公路，傍晚', 'acts': '到了观景处（不拍骑行过程），他摘下手套，两人靠在石栏边，聊到当年认识的时候', 'lines': [["This is the real one. No Evan. No audience.", "这次是真的。没有 Evan，没有观众。"]], 'out': '情绪到位'},
+  {'id': 'K10', 'loc': 'L7', 'role': '第一次约会：沿海公路，傍晚', 'acts': '骑行的过程要拍（她坐在后座搂着他的腰），到了观景处，他摘下手套，两人靠在石栏边，聊到当年认识的时候', 'lines': [["This is the real one. No Evan. No audience.", "这次是真的。没有 Evan，没有观众。"]], 'out': '情绪到位'},
   {'id': 'K11', 'loc': 'L7', 'role': '这次不必演（RAF_PEAK_01）：清醒的第一次吻，只在她有明确意愿时', 'acts': '玩笑停住，他先看她、确认；吻后他有一拍藏不住的紧张，把下一步交回给她。不重演昨晚，不自动确认恋爱', 'lines': [["No acting this time.", "这次不演了。"]], 'out': '吻是清醒的，关系仍由她定'},
   {'id': 'K12', 'loc': 'L6', 'role': 'Cole 的酒吧：回到昨晚的地方，在朋友面前怎么说', 'acts': 'Cole 笑着问，两人一起决定怎么答', 'lines': [["Ask her. It's her call too.", "问她。这事她也说了算。"]], 'out': '公开范围被两人一起决定'},
   {'id': 'K13', 'loc': 'L3', 'role': '给关系命名，并开出新的悬念', 'acts': '两人谈称呼、空间和接下来怎么住；一个新的现实变数出现（一笔大单、Evan 的后续、搬不搬到一间房）', 'lines': [["So what do we call this?", "那我们管这个叫什么？"]], 'out': '新的一段'},

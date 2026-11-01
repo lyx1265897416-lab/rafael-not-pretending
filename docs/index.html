@@ -108,7 +108,8 @@ body.lang-en .zh{display:none!important}
 #liveWait .t{font-family:var(--display);font-size:44px;color:#f3eee2;font-variant-numeric:tabular-nums}
 #liveWait .s{font-size:13px;color:#d4d7dc;max-width:30ch}
 #liveWait .her{font-size:13px;color:var(--gold);font-style:italic;max-width:30ch}
-.rno{font-size:11px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;text-align:center}
+.rno{font-size:11px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;text-align:center;display:flex;justify-content:center;align-items:center;gap:10px}
+#replayBtn{background:none;border:1px solid rgba(255,255,255,.22);border-radius:999px;color:#e8e8e8;font-size:11px;letter-spacing:.04em;padding:3px 10px;cursor:pointer}
 </style>
 <div id="stage">
   <video class="v" id="va" playsinline webkit-playsinline preload="auto"></video>
@@ -126,7 +127,7 @@ body.lang-en .zh{display:none!important}
   <div id="liveChip" hidden></div>
   <div id="subs" aria-live="polite"></div>
   <section id="sheet" aria-label="Your choice">
-    <div class="rno" id="rno"></div>
+    <div class="rno"><span id="rno"></span><button id="replayBtn" type="button" hidden></button></div>
     <div class="cue" id="cue"></div>
     <button class="opt" id="optA"></button>
     <button class="opt" id="optB"></button>
@@ -139,12 +140,13 @@ body.lang-en .zh{display:none!important}
   <section class="card" id="startCard">
     <div class="kicker" data-en="Live interactive test" data-zh="实时互动测试"></div>
     <h1 id="title"></h1>
-    <p data-en="Only the opening is pre-made. After that, every scene is generated live from what you choose or type, and the story keeps going." data-zh="只有开场是预制的。之后每一段都根据你的选择或输入实时生成，故事会一直演下去。"></p>
+    <p data-en="Where the story goes from here is up to how you play it. Tap a choice, or just type whatever you want to do." data-zh="故事接下来怎么走，就看你怎么演了。点选项，或者直接打字说你想做什么。"></p>
     <div class="meta"><span id="modeMeta"></span><span>Vivix W1</span><span data-en="Sound on" data-zh="请打开声音"></span></div>
     <button class="cta" id="startBtn" data-en="Start" data-zh="开始"></button>
   </section>
   <div id="toast" hidden></div>
 </div>
+<script src="rt-player.js?v=2"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -166,6 +168,7 @@ const waitMusic = on => { waitTarget = on ? .3 : 0; if (on && wait.paused) wait.
 const LANGQ = (Q.get('lang') || '').toLowerCase();
 let lang = LANGQ.startsWith('zh') ? 'zh' : LANGQ.startsWith('en') ? 'en' : (/^zh/i.test(navigator.language || '') ? 'zh' : 'en');
 const T = (en, zh) => lang === 'zh' ? zh : en;
+RT.init({drama: 'rafael-not-pretending', zh: () => lang === 'zh'});
 
 const applyLang = () => {
   document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en'; document.body.classList.toggle('lang-en', lang === 'en');
@@ -210,20 +213,23 @@ $('startBtn').onclick = async () => {
   startSession().catch(e => setChip('<b>Could not start</b> · ' + esc(e.message)));
   playOpening();
 };
+let replayFn = null;
 function playOpening(){
   showSub(null); ov.currentTime = 0; ov.muted = false; ov.loop = false;
+  RT.begin({key: 'OPEN', parts: [{v: ov, d: 101.5}]}); replayFn = playOpening;
   ov.play().then(() => show(ov)).catch(() => { show(ov); toast(T('Tap the screen to start', '点一下画面开始')); });
   ov.ontimeupdate = () => { const t = ov.currentTime; const c = OPEN_CUES.find(q => t >= q.s && t <= q.e); showSub(c || null, c && (c.who === 'Her' ? T('Her', '她') : c.who)); };
-  ov.onended = () => { ov.ontimeupdate = null; idle.currentTime = 0; idle.play().catch(() => {}); show(idle); openChoice(); };
+  ov.onended = () => { RT.done('OPEN'); RT.clear(); ov.ontimeupdate = null; idle.currentTime = 0; idle.play().catch(() => {}); show(idle); openChoice(); };
 }
-$('mRestart').onclick = () => { $('menu').hidden = true; closeChoice(); $('liveWait').hidden = true; liveRun++; busy = false; setMode('playing'); startSession().catch(() => {}); load(idle, SRC('media/IDLE0.mp4'), true); playOpening(); };
+$('mRestart').onclick = () => { $('menu').hidden = true; replayFn = null; closeChoice(); $('liveWait').hidden = true; liveRun++; busy = false; setMode('playing'); startSession().catch(() => {}); load(idle, SRC('media/IDLE0.mp4'), true); playOpening(); };
 $('menuBtn').onclick = () => { const m = $('menu'); m.hidden = !m.hidden; };
 $('mLang').onclick = () => { lang = lang === 'en' ? 'zh' : 'en'; Q.set('lang', lang); history.replaceState(null, '', '?' + Q.toString()); applyLang(); $('menu').hidden = true; };
 
 // 选择点：导演层上一轮给的两个选项 + 输入框
 const opt = o => `<span class="en">${esc(o.en)}</span><span class="zh">${esc(o.zh)}</span>`;
 async function openChoice(){
-  setMode('choosing'); $('shade').classList.add('deep'); waitMusic(true);
+  setMode('choosing'); $('shade').classList.add('deep'); waitMusic(true); RT.clear();
+  $('replayBtn').hidden = !replayFn; $('replayBtn').textContent = T('↺ Replay', '↺ 重看这一段');
   for (let i = 0; i < 100 && !next; i++) await new Promise(r => setTimeout(r, 100));
   if (!next){ setChip('<b>No options received</b> · the local relay did not respond'); return; }
   fillChoice();
@@ -236,6 +242,7 @@ function fillChoice(){
   $('cue').innerHTML = `${esc(next.cue.en)}<span class="zh">${esc(next.cue.zh)}</span>`;
   $('optA').innerHTML = opt(next.A); $('optB').innerHTML = opt(next.B);
 }
+$('replayBtn').onclick = () => { if (!replayFn || busy) return; closeChoice(); $('shade').classList.remove('deep'); waitMusic(false); setMode('playing'); replayFn(); };
 function closeChoice(){ $('sheet').classList.remove('show'); subs.style.bottom = ''; $('shade').classList.remove('deep'); }
 $('say').addEventListener('submit', e => { e.preventDefault(); const raw = $('sayIn').value.trim(); if (!raw || busy) return; liveRound('free', null, {zh: raw, en: raw}); });
 
@@ -247,7 +254,7 @@ async function liveRound(kind, choice, said){
   closeChoice(); setMode('waiting'); waitMusic(true); showSub(null);
   const herLine = lang === 'en' ? (said.en || said.zh) : (said.zh || said.en);
   $('lwH').textContent = T('You: ', '你：') + herLine;
-  const phase = () => !r ? T('Sending…', '发送中…') : r.status === 'submitted' ? (kind === 'option' ? T('Reading the storyboard for this choice…', '读取这个选项预先写好的分镜…') : T('Writing his reply…', '导演层在写他的回话…')) : r.status === 'error' ? T('Generation failed', '生成失败')
+  const phase = () => !r ? T('Sending…', '发送中…') : r.status === 'keyframe' ? T('Setting up the next moment…', '正在准备下一刻的画面…') : r.status === 'submitted' ? (kind === 'option' ? T('Reading the storyboard for this choice…', '读取这个选项预先写好的分镜…') : T('Writing his reply…', '导演层在写他的回话…')) : r.status === 'error' ? T('Generation failed', '生成失败')
     : (r.segs && r.segs[0] && r.segs[0].url && r.segs[1] && !r.segs[1].url) ? T(`Part 1 ready · part 2 in ~${(r.segs[1].eta_left || 0).toFixed(0)} s, timing the start so both play straight through`, `第 1 段好了 · 第 2 段约 ${(r.segs[1].eta_left || 0).toFixed(0)} 秒后好，算好时间开播，两段接着播`)
     : T(`Generating both parts at once (${r.mode.replace('+', ' s + ')} s) · ${(r.segs || []).filter(s => s.url).length}/2 ready`, `两段同时生成中（${r.mode.replace('+', ' 秒 + ')} 秒）· 已完成 ${(r.segs || []).filter(s => s.url).length}/2`);
   const hold = (label, cond) => new Promise(res => { $('liveWait').hidden = false; (function f(){ if (my !== liveRun) return; $('lwT').textContent = ((Date.now() - t0) / 1000).toFixed(1); $('lwS').textContent = label || phase(); if (cond()){ res(); } else setTimeout(f, 100); })(); });
@@ -269,11 +276,12 @@ async function liveRound(kind, choice, said){
   if (!segErr() && r.status !== 'error'){
     $('liveWait').hidden = true; waitMusic(false); setMode('playing');
     view.play_at = Date.now(); view.seg2_eta = r.segs[1] ? r.segs[1].eta_left : null;
+    RT.begin({key: 'round:' + rid, parts: r.segs.map((x, i) => ({v: V[i], d: x.dur || x.seconds})), label: T(`Scene ${round + 1}`, `第 ${round + 1} 幕`)}); RT.part(0);
     await play(0); view.seg1_end = Date.now();
     const ok2 = () => segErr() || (r.segs[1].url && V[1].dataset.src === r.segs[1].url && V[1].readyState >= 3);
     if (!ok2()){ waitMusic(true); while (!ok2() && my === liveRun) await new Promise(res => setTimeout(res, 100)); waitMusic(false); }  // 第 2 段还没到：停在第 1 段最后一帧
     view.stall = (Date.now() - view.seg1_end) / 1000;
-    if (my === liveRun && !segErr()) await play(1);
+    if (my === liveRun && !segErr()){ RT.part(1); await play(1); RT.done('round:' + rid); }
   }
   clearInterval(poll); view.end_at = Date.now(); $('liveWait').hidden = true;
   if (rid) api(`/api/round/${rid}/view`, view).catch(() => {});
@@ -282,14 +290,25 @@ async function liveRound(kind, choice, said){
   busy = false;
   if (!view.play_at || segErr()){ const low = (r.segs || []).some(s => s.err_code === 10005); setChip(low ? '<b>Vivix balance low</b> · this scene was not generated (10005). Top up the Vivix workspace, then choose or send again here' : `<b>This scene failed</b> · ${esc((r.segs || []).map(s => s.err).filter(Boolean)[0] || r.err || '')} · you can choose again`); if (low) toast(T('Vivix balance low', 'Vivix 余额不足')); openChoice(); return; }
   setChip(`<b>Scene ${round + 1}</b> · ${esc(r.mode)} · send to play ${((view.play_at - t0) / 1000).toFixed(1)}s (director ${dir == null ? '—' : dir.toFixed(1)}s${r.director === 'prefetched' ? ' prefetched' : ''} + part 1 ${r.segs[0].ready_at ? ((r.segs[0].ready_at - r.director_at) / 1000).toFixed(1) : '—'}s, part 2 ${gen == null ? '—' : gen.toFixed(1)}s) · seam pause ${(view.stall || 0).toFixed(1)}s`);
+  const sceneNo = round + 1;
+  replayFn = () => {  // 重看：看过了，可以随意拖；两段之间拖动时直接跳到那一段
+    const go = (j, t) => { const v = V[j]; subsFor(j, v); v.currentTime = t; v.muted = false; v.loop = false; v.onended = () => { v.ontimeupdate = null; showSub(null); if (j + 1 < V.length){ RT.part(j + 1); go(j + 1, 0); } else { v.onended = null; RT.clear(); openChoice(); } }; v.play().then(() => show(v)).catch(() => {}); };
+    RT.begin({key: 'round:' + rid, free: true, parts: r.segs.map((x, i) => ({v: V[i], d: x.dur || x.seconds})), label: T(`Scene ${sceneNo}`, `第 ${sceneNo} 幕`), jump: (j, t) => { V.forEach(x => { if (x !== V[j]){ x.pause(); x.onended = null; x.ontimeupdate = null; } }); go(j, t); }});
+    go(0, 0);
+  };
   round++; next = r.next || next; openChoice();
 
+  function subLine(i, v){
+    const Lns = (r.lines['seg' + (i + 1)] || []).filter(Boolean), Z = ((r.zh || {})['seg' + (i + 1)] || []).filter(Boolean), off = i === 1 ? 2 : 0;  // 第 2 段前 2 秒是静止承接
+    return () => { const d = v.duration || r.segs[i].seconds; const LT = (r.line_times || {})['seg' + (i + 1)]; if (LT){ const c = LT.find(x => v.currentTime >= x.s && v.currentTime <= x.e); if (c) showSub({en: c.en, zh: c.zh || ''}, c.who === '她' ? T('Her', '她') : c.who); else showSub(null); } else if (Lns.length){ const t = Math.max(0, v.currentTime - off); const k = Math.min(Lns.length - 1, Math.floor(t / (d - off) * Lns.length)); showSub({en: Lns[k], zh: Z[k] || ''}, 'Rafael'); } };
+  }
+  function subsFor(i, v){ const f = subLine(i, v); v.ontimeupdate = f; }
   function play(i){ return new Promise(res => {
-    const v = V[i], Lns = (r.lines['seg' + (i + 1)] || []).filter(Boolean), Z = ((r.zh || {})['seg' + (i + 1)] || []).filter(Boolean);
-    const off = i === 1 ? 2 : 0;  // 第 2 段前 2 秒是静止承接
+    const v = V[i];
     v.currentTime = 0; v.muted = false; v.loop = false; let done = false;
     const end = () => { if (done) return; done = true; v.ontimeupdate = null; showSub(null); res(); };
-    v.ontimeupdate = () => { if (my !== liveRun){ end(); return; } const d = v.duration || r.segs[i].seconds; const LT = (r.line_times || {})['seg' + (i + 1)]; if (LT){ const c = LT.find(x => v.currentTime >= x.s && v.currentTime <= x.e); if (c) showSub({en: c.en, zh: c.zh || ''}, c.who === '她' ? T('Her', '她') : c.who); else showSub(null); } else if (Lns.length){ const t = Math.max(0, v.currentTime - off); const k = Math.min(Lns.length - 1, Math.floor(t / (d - off) * Lns.length)); showSub({en: Lns[k], zh: Z[k] || ''}, 'Rafael'); } if (d && v.currentTime >= d - 0.06) end(); };
+    const sub1 = subLine(i, v);
+    v.ontimeupdate = () => { if (my !== liveRun){ end(); return; } sub1(); const d = v.duration || r.segs[i].seconds; if (d && v.currentTime >= d - 0.06) end(); };
     v.onended = end; v.onerror = end;
     v.play().then(() => show(v)).catch(() => { v.muted = true; v.play().then(() => show(v)).catch(end); });
   }); }

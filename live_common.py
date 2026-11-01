@@ -36,7 +36,7 @@ CAST = {
 RAF = ('Rafael：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，凌乱翘起的黑色短发、几缕垂在额前；右侧颈部黑色荆棘纹身，一条粗银链，两条小臂满臂纹身。'
        '日常穿着：褪色炭灰色圆领 T 恤，浅色水洗蓝牛仔裤；手指上空无一物。他的长相和服装全程不变，以参考的身份母版为准。')
 HER_FP = '她的手外形全程固定：纤细白皙的女性双手，指甲短而圆、裸色素甲，手指和手腕上空无一物，袖口是奶油色开衫的长袖。'
-HER = ('她：二十多岁的成年女人，白皙皮肤，成熟精致的脸，高颧骨、窄下颌、细直的鼻子，灰蓝色眼睛，柔和的灰褐色眼妆，鼻梁上淡淡的雀斑，豆沙玫瑰色的饱满嘴唇，不显幼态；很长的冷调灰金层次长发、发根略深、脸旁有碎发；'
+HER = ('她：二十多岁的成年女人，白皙皮肤，成熟精致的脸，高颧骨、窄下颌、细直的鼻子，灰蓝色眼睛，柔和的灰褐色眼妆，鼻梁上淡淡的雀斑，豆沙玫瑰色的饱满嘴唇，不显幼态；很长的米金色层次长发（浅棕发根、沙色挑染，中分，不是银灰也不是金黄）、脸旁有碎发；'
        '奶油色长袖开衫，里面奶油色和黑色条纹的针织上衣，奶油白阔腿长裤，条纹系带腰带，黑色平底鞋；'
        '指甲短而圆、裸色素甲，手指和手腕上空无一物。她的长相、发型和服装全程不变，严格以她的身份母版（正面头像、全身正面、多角度）为准。她的表情自然克制，情绪在眼神里。')
 WOLF = ''
@@ -50,6 +50,7 @@ STYLE = ('画面和角色参考图是同一种渲染和画质：高级半写实 
 STAGING = {
     'face': '站位：两人面对面站着，相距一臂到半臂，Rafael 在画面左侧、她在画面右侧，两人都是三分之四侧脸朝着对方。',
     'side': '站位：两人并排坐着（沙发、餐桌同一侧、吧台或长椅），Rafael 在画面左侧、她在画面右侧，上身侧过来朝向对方；不是面对面坐。',
+    'bike': '站位：两人同骑一辆黑色旧摩托车，车头朝画面左方，Rafael 在前握着车把（画面左侧），她在后座（画面右侧）双臂环住他的腰、身体贴着他的背，镜头在车的侧面，两人的脸都看得到。',
     'bed': '站位：两人在同一张床上，Rafael 坐在床沿、在画面左侧，上身侧过来朝向她；她靠坐在床头、被子盖到腰、在画面右侧，三分之四侧脸朝着他；房间里只有一张床。',
 }
 
@@ -334,14 +335,25 @@ def _wear_note(w):
     return '（这个镜头的穿着，' + '；'.join(t) + '）' if t else ''
 
 
-def _mark_shots(p, beats, start, end):
-    """每个镜头标当前穿着：变化那一拍（最后一个写了穿脱动作的拍子）之前按开头，之后按结束。"""
+RIDE_ON = re.compile('行驶|骑行|疾驰|飞驰|驶过|驶向|驶在')
+RIDE_MOVE = '（摩托车正在公路上向画面左方匀速行驶：车轮转动，路面和路边的护栏向画面右方飞快后退，头发和衣角被风吹向后方，两人的脚都踩在脚踏上；她坐在后座环着他的腰）'
+
+
+def _mark_shots(p, beats, start, end, posture='', holding=''):
+    """每个镜头标当前穿着和姿态（只写在段首时，参考图会把衣服带回去）：变化那一拍（最后一个写了穿脱动作的拍子）之前按开头，之后按结束。V2.0：加上姿态、手里的东西和骑行的运动。"""
     last = max([i for i, b in enumerate(beats) if _WEAR_RE.search(str(b[0]))], default=-1) if end != start else -1
     n = [-1]
     def sub(m):
         n[0] += 1
-        w = end if (end != start and n[0] > last) else start
-        return m.group(0) + _wear_note(w)
+        i = n[0]; b = beats[i] if i < len(beats) else None
+        if b is not None and '空镜' in str(b[2] if len(b) > 2 else ''): return m.group(0)
+        w = end if (end != start and i > last) else start
+        t = _wear_note(w)
+        if posture: t += f'（这个镜头两人的姿态：{posture}）'
+        if re.search('躺|俯在', posture or ''): t += '（从这个镜头第一秒到最后一秒两人都还躺在地上：镜头略俯，背景是身下的沙子或床，不是天空和海平线，没有人站着，也没有人站起来）'
+        if holding: t += f'（手里和身边的东西：{holding}）'
+        if b is not None and RIDE_ON.search(str(b[0])): t += RIDE_MOVE
+        return m.group(0) + t
     return re.sub(r'镜头\d+（[^）]*）【[^】]*】', sub, p)
 
 
@@ -351,14 +363,18 @@ _prompts_v17 = prompts
 def prompts(sp, mode, *a, **kw):
     out = _prompts_v17(sp, mode, *a, **kw)
     start, end = sp.get('wardrobe_start') or {}, sp.get('wardrobe_end') or {}
+    use = sp.get('use_key')  # V2.0：'bridge' 不换地点，第 1 段首尾帧演变化、第 2 段首帧=关键帧；'ref' 换地点，第 2 段第一张参考图=关键帧
+    custom = bool(sp.get('wardrobe_changed'))
+    looks = '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items())
     res = []
     for k, (d, p, f) in enumerate(out):
-        if sp.get('wardrobe_changed'):
-            p = _dress(p, start)
+        w_here = end if (k == 1 and use) else start
+        if custom:
+            p = _dress(p, w_here)
             if start.get('tod'): p = p.replace(_NIGHT, '时间是清晨，窗外是柔和的晨光，室内是自然的晨光。').replace('深夜，', '').replace('深夜的', '').replace('深夜', '')
             stay = not sp.get('scene_changed')  # 不换地点：第 1 段首尾锁成上一刻的画面，第 2 段的第一张参考图也是它，接缝不跳，房间和穿着也接得上（第 4、5 轮换过房间）
-            if k == 0 and stay and f is True: f = 'lock'; p = p.replace('最后停在：', '最后回到和首帧一样的位置和姿势：', 1)
-            if k == 1:
+            if k == 0 and stay and f is True and not use: f = 'lock'; p = p.replace('最后停在：', '最后回到和首帧一样的位置和姿势：', 1)
+            if k == 1 and not use:
                 i = p.find('第三人称电影镜头')
                 if i > 0 and not f:
                     if stay: p = '图片1就是这一段的场景和上一刻的画面：房间、床、灯、光线、两人的穿着和位置都和图片1一样，这一段不离开这个地方；图片2只看 Rafael 的脸和头发，不看他的衣服，图片3只看她的脸和头发，不看她的衣服；两人的长相和画风以这些图为准，穿着按每个镜头写的。' + p[i:]  # 只用首帧时 4 轮就换脸（头发变棕、变真人画风），所以第 2 段仍带脸的参考图
@@ -366,11 +382,48 @@ def prompts(sp, mode, *a, **kw):
                 if end != start:
                     p = p.replace('他的长相和服装全程不变，以参考的身份母版为准。', '他的长相全程不变，穿着按写到的动作变化。').replace(_SHE_END, '她的长相和发型全程不变，穿着按写到的动作变化。').replace('全程穿在身上；', '开头穿在身上；')
                     p += f"这一段的穿着变化：开头是（Rafael：{start.get('he', HE_DEFAULT)}；她：{start.get('she', SHE_DEFAULT)}），只在写到的那一拍变化，之后是（Rafael：{end.get('he', start.get('he', HE_DEFAULT))}；她：{end.get('she', start.get('she', SHE_DEFAULT))}），不再变回去。"
-        if sp.get('wardrobe_changed'): p = _mark_shots(p, sp['seg1' if k == 0 else 'seg2'], start, end if k == 1 else start)  # V1.8：逐镜头写穿着（只写在段首时，参考图会把衣服带回去：S041550316 第 2、3 轮）
+        i = p.find('第三人称电影镜头')
+        if k == 1 and use == 'bridge' and i >= 0:  # V2.0：第 2 段从关键帧开始，一开始就是变化之后的样子；不带参考图，服装母版不会把衣服穿回去
+            f = True; p = '这一段从首帧那一刻接着演：地点、背景、光线、两个人的长相、穿着、姿态、手里的东西都和首帧一样，全程保持，不变回去。' + p[i:]
+        if k == 1 and use == 'ref' and i >= 0:
+            f = False; p = '图片1是这一段的新地点和两人此刻的样子：地点、光线、两人的穿着、姿态和道具都照它，每个镜头保持，不变回去；图片2只看 Rafael 的脸和头发，图片3只看她的脸和头发；他们的影棚背景不进画面。' + p[i:]
+        if k == 0 and use == 'bridge':  # 第 1 段：首帧是上一刻，尾帧是变化之后的样子，一镜到底把动作演出来
+            f = 'bridge'
+            a = p.find('镜头1（'); b = p.find('最后停在：')
+            if a >= 0 and b > a: p = p[:a] + '固定机位，一镜到底，不切镜，把这个动作连续演完：' + take(sp['seg1'], d) + p[b:]
+            p = p.replace('最后停在：', '最后变成尾帧的样子（动作已经做完）：', 1)
+            hold_now = str(sp.get('key') or sp.get('hold') or '').rstrip('。')
+            p = re.sub(r'最后变成尾帧的样子（动作已经做完）：[^。]*。', lambda m: f'最后变成尾帧的样子（动作已经做完）：{hold_now}。', p, count=1)
+        beats = sp['seg1' if k == 0 else 'seg2']
+        w1 = end if (k == 1 and not use) else w_here
+        if custom or sp.get('posture_start') or sp.get('posture_end') or sp.get('holding_end'):
+            po = (sp.get('posture_end') if k == 1 else sp.get('posture_start')) or ''
+            ho = (sp.get('holding_end') if k == 1 else sp.get('holding_start')) or ''
+            p = _mark_shots(p, beats, w_here if custom else {}, w1 if custom else {}, po, ho)
+        elif any(RIDE_ON.search(str(b[0])) for b in beats): p = _mark_shots(p, beats, {}, {})
+        if looks: p += f'固定外观（全程不变）：{looks}。'
         p += TAIL_V18
         if k == 1 and int(sp.get('intimacy') or 0) >= 3: p += TAIL_INTIMATE
         res.append((d, p, f))
     return res
+
+
+def key_prompt(sp, moved):
+    """V2.0：第 2 段第一张画面（状态关键帧）的修图指令。两段同时生成，第 2 段看不到第 1 段；衣服、姿态、地点变化都先画成这一张，两段都对着它演。"""
+    w = sp.get('wardrobe_end') or {}
+    he, she = w.get('he') or HE_DEFAULT, w.get('she') or SHE_DEFAULT
+    place = (sp.get('set') or '').rstrip('。')
+    head = ('Image 1 is the previous moment of the same film: use it for the two people and the render style, but the location changes to the one written below. ' if moved
+            else 'Image 1 is the previous moment of the same film: keep the same location, background, lighting, color and camera side. ')
+    return (head + 'Image 2 is only the man\'s face and hair reference (Rafael), Image 3 is only the woman\'s face and hair reference. '
+            f'Paint the next moment as one still frame, vertical 9:16. What the frame shows (written in Chinese): {sp.get("key")}。 '
+            f'Location (Chinese): {place}。 Posture (Chinese): {sp.get("posture_end") or "按画面描述"}。 '
+            f'His clothes right now (Chinese): {he}。 Her clothes right now (Chinese): {she}。 Clothes must be exactly these, nothing added back. '
+            + (f'Objects (Chinese): {sp.get("holding_end")}。 ' if sp.get('holding_end') else '')
+            + (f'Fixed object looks (Chinese): ' + '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items()) + '。 ' if sp.get('looks') else '')
+            + 'Exactly two people: the man on the left of the frame, the woman on the right, both faces visible. He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, tattoo sleeves on both forearms ending at the wrist, no tattoos on his hands, no rings, no watch. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. '
+            'Keep the same semi-realistic high-detail character rendering as Image 1. Correct anatomy, five fingers on each hand. No text, no logo, no watermark.')
 
 
 def line_times(sp, mode):

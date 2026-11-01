@@ -855,6 +855,7 @@ def _shape(sp, mode):
         if sp[k] and not str(sp[k][-1][2]).startswith('双人') and not sp.get('wolf_end'):  # 第三视角：每段最后一拍两人同框，下一段/下一轮从这一刻接（V1.1 起不限双人近景）
             last = str(sp[k][-1][2])
             sp[k][-1][2] = ('双人近景' if last.startswith(('单人近景', '近景')) else '双人中近景') + '，固定'
+        if k == 'seg2' and sp[k] and not sp.get('kiss') and int(sp.get('intimacy') or 0) < 2 and str(sp[k][-1][2]).startswith(('双人近景', '双人中近景')): sp[k][-1][2] = '双人中景，固定'  # V2.3：末帧只拍到胸口，下一轮第 1 段要自己猜下半身（牛仔裤变成黑裤、她变成牛仔短裤），收尾看得到全身穿着
         for b in sp[k]:
             if str(b[2]).startswith('过肩'): b[2] = '双人近景，' + (str(b[2]).split('，', 1)[1] if '，' in str(b[2]) else '固定')  # 第三视角 v1：过肩镜头会换边，一律改成双人近景
         if sp[k] and str(sp[k][-1][2]).startswith('双人'): sp[k][-1][2] = str(sp[k][-1][2]).split('，')[0] + '，固定'  # 第三视角 v1 第 1 轮：最后一拍缓推，把她推出了画面右边；收尾机位固定

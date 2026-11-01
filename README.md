@@ -33,15 +33,17 @@
 | 带我去你店里看看 | 5+15 | 45.2 秒 | ![第 3 轮](assets/round3.jpg) |
 | 吻我 | 5+15 | 40.2 秒 | ![第 4 轮](assets/round4.jpg) |
 
-另外在播放页上点选项跑了 1 轮：发送到开播 41.5 秒，两段接缝停顿 0 秒。
+另外在播放页上跑了 2 轮，接缝停顿都是 0 秒：点选项发送到开播 41.5 秒；从 GitHub Pages 自由输入“带我去海边吹吹风”116.7 秒，其中第 1 段生成就用了 102 秒，第 2 段只用了 24 秒。
 
 <table>
 <tr>
 <td width="300"><img src="assets/kiss.gif" width="280" alt="第 4 轮的吻戏片段"></td>
+<td width="300"><img src="assets/ui-start.jpg" width="280" alt="开始页"></td>
 <td width="300"><img src="assets/ui-choice.jpg" width="280" alt="选择点界面：两个选项和一个输入框"></td>
 </tr>
 <tr>
 <td align="center">第 4 轮持续吻（<a href="assets/samples/round4_kiss.mp4">看原片</a>）</td>
+<td align="center">开始页</td>
 <td align="center">选择点：两个选项 + 自由输入</td>
 </tr>
 </table>

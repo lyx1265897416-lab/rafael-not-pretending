@@ -25,6 +25,7 @@ opening-bridge/cdn_new.txt
 opening-bridge/live*
 opening-bridge/seam_sheet.jpg
 backup-v19pre/
+backup-v20pre/
 tests/review_sheets.py.bak
 tests/run_v20*.log
 review/

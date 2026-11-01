@@ -57,6 +57,10 @@
 - 前 5 秒可以只用动作回应。
 - 播放：进度条、时长、倍速，单击画面暂停和播放。第一次看不能拖，看完一次后可以随意拖（`docs/rt-player.js`，所有 realtime 剧集共用）。
 
+### V2.1：第三视角共用一份 PE（2026-11-01）
+
+所有第三视角实时剧共用一份规则和一个版本号。这里的 `director.py`、`live_common.py`、`qa_guard.py`、`raf_third_relay.py` 是合成出来的文件，通用模板在主项目的 `tools/realtime-third/templates/`（不在这个仓库），这部剧自己的人物、地点、时间线在 `drama_slots.py`。
+
 ### 已知问题
 
 - 长相会随轮次漂移：他的头发变卷、变整齐，肤色偏深；她的发色偏金。

@@ -214,10 +214,10 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
     use = (R[rid].get('spec') or {}).get('use_key'); key = R[rid].get('key_url')
     if first == 'bridge': kw['first_frame_image'] = frame_url; kw['last_frame_image'] = key  # V2.0：首帧上一刻、尾帧关键帧，一镜到底把动作演出来
     elif i == 1 and use == 'bridge': frame_url = key; kw['first_frame_image'] = key  # V2.0：第 2 段从变化之后的样子开始
-    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.RAF_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
+    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
     elif first == 'lock': kw['first_frame_image'] = kw['last_frame_image'] = frame_url  # V0.17：10+10 第 1 段首尾帧都锁成上一刻画面
     elif first or (L.SEG2_FIRST and not extra): kw['first_frame_image'] = frame_url  # v0.11：第 2 段也从同一张首帧出发（参考图模式容易拍成第三人称、出现过肩）
-    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.RAF_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
+    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
     elif no_scene: kw['ref_images'] = [STAGING_URL, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
     else: kw['ref_images'] = [frame_url, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
     def gen(body):
@@ -382,9 +382,9 @@ def _worker(rid):
         tk = now(); r['status'] = 'keyframe'; r['mode'] = r['mode']; save(rid)
         for attempt in range(2):
             try:
-                kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.RAF_HEAD, qa_guard.HER_HEAD], kj)
+                kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], kj)
                 r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
-                sp['use_key'] = 'ref' if moved_now else 'bridge'; break
+                sp['use_key'] = 'ref' if (moved_now or extra) else 'bridge'; break  # 有身份母版的配角要带参考图，首尾帧模式带不了
             except Exception as e: log('KEYFAIL', rid, attempt, str(e)[:200])
         r['key_sec'] = round((now() - tk) / 1000, 1); log('KEY', rid, sp['use_key'], r['key_sec'], 's')
     segs = L.prompts(sp, r['mode'], hands_in_frame=hands_now, set_start=s.get('set') or director.OPEN_SET, stage_start=s.get('staging') or 'bed', seg2_first=L.SEG2_FIRST and not extra, worn='、'.join(w for w in worn_now if w != L.JACKET), jacket_start=jacket_start)

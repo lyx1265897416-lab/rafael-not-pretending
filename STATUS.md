@@ -9,3 +9,6 @@
 
 ## V2.0（2026-11-01，复盘 Vicky 13 轮 S0102325ab）
 改动在 director.py（意图、状态连续、state_issues、settle_state）、live_common.py（_mark_shots、key_prompt、bridge/ref）、qa_guard.py（key_frame、seg_state、fix_state）、raf_third_relay.py（关键帧、头像参考、状态质检）。实测会话 S014642140、S010948770、S0118574ba。备份 backup-v19pre/。播放控件 tools/realtime-player/rt-player.js，`apply.py` 同步到其他剧集。
+
+## V2.1（2026-11-01，共用 PE）
+director.py、live_common.py、qa_guard.py、raf_third_relay.py 现在由 tools/realtime-third/render.py 从通用模板和本目录 drama_slots.py 合成，不要手改；launchd 重启中转前会自动合成一次。改规则改 tools/realtime-third/templates/，改这部剧的内容改 drama_slots.py。备份 backup-v20pre/。隔离回归 output/rafael-third-v20test（S01541465d、S020104975）。

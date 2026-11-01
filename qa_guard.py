@@ -10,7 +10,7 @@ VLM = 'anthropic/claude-sonnet-5.5'
 FACE_URL = _L.TU['face']  # 白底正面头像身份母版
 OUTFIT_URL = _L.TU['outfit']  # 裁成上半身（全身站姿的母版会把画面往全身拉）
 
-RAF_HEAD = _L.TU.get('face_head') or _L.TU['face']  # V2.0：只有头和脖子，穿着不是默认时用，T 恤不会被带回来
+HE_HEAD = _L.TU.get('face_head') or _L.TU['face']  # V2.0：只有头和脖子，穿着不是默认时用，T 恤不会被带回来
 HER_HEAD = _L.TU.get('her_head') or _L.TU['her']
 HER_URL = _L.TU['her']  # 她：正面头像 + 全身正面 + 多角度合图
 
@@ -105,7 +105,7 @@ def fix_state(frame_url, issues, state, timeout=120):
     """V2.0：穿着不是默认时，按这一刻真实的穿着和姿态修（默认的 fix 会把脱掉的衣服修回去）。"""
     prompt = ('Edit Image 1 minimally. Fix only these problems (Chinese): ' + '；'.join(issues) + '。 The state of this moment (Chinese): ' + state + '。 '
               'Keep everything else pixel-faithful: background, location, lighting, camera angle, crop, both people\'s positions and expressions. Image 2 is only the man\'s face and hair reference, Image 3 is only the woman\'s face and hair reference. Do not add clothes that are not in the state. No readable text. Same semi-realistic character rendering.')
-    return _edit(prompt, [frame_url, RAF_HEAD, HER_HEAD], timeout)
+    return _edit(prompt, [frame_url, HE_HEAD, HER_HEAD], timeout)
 
 
 def fix_scene(frame_url, set_text, timeout=240):
@@ -176,11 +176,11 @@ def grid(mp4, out):
 
 
 def seg_state(mp4, state, timeout=40):
-    """V2.0：穿着或姿态不是默认的那一段，播放前看一遍全程有没有变回去（第 6 轮第 2 段后半段 T 恤又穿回去了）。"""
+    """V2.0：穿着或姿态不是默认的那一段，播放前看一遍全程有没有变回去（Rafael 第 6 轮第 2 段后半段 T 恤又穿回去了）。"""
     g = Path(str(mp4)).with_suffix('.st.jpg'); n = grid(mp4, g)
     b64 = base64.b64encode(open(g, 'rb').read()).decode()
     t = (f'这张图是一段视频按时间顺序等间隔抽的 {n} 帧。这一段全程的状态应该是：{state}。逐格看有没有和它明确矛盾：已经脱掉的衣服穿在身上、该穿着的衣服不见了、该躺着却站着、该在车上却不在。'
-         '空镜、只拍到脸看不出来的格子不算。只输出 JSON：{"bad": true 或 false, "why": "哪一格、什么问题，没有写空"}')
+         '只看大状态：看不到、无法确认的都不算；手放在哪、搂得紧不紧、半躺还是全躺、手表和裤子看不看得到都不算；空镜、只拍到脸看不出来的格子不算。只输出 JSON：{"bad": true 或 false, "why": "哪一格、什么问题，没有写空"}')
     body = {'model': VLM, 'max_tokens': 400, 'reasoning': {'effort': 'low'}, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': t}, {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b64}}]}]}
     req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
     with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())

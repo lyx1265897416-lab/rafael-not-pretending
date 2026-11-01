@@ -33,15 +33,15 @@ CAST = {
     'Cole': ('Cole：三十一岁男人，健壮，方圆脸，晒过的浅麦色皮肤，灰蓝色眼睛，沙棕色短发和修剪整齐的短胡子；深烟草色麂皮短夹克敞开，里面象牙色棉衬衫。长相和衣着以他的身份母版为准。', TU['cole']),
     'Ryan': ('Ryan：二十二岁男人，瘦削，浅象牙色皮肤，鼻梁有淡雀斑，榛色眼睛，蓬松的铜棕色短发，干净无胡须；敞开的深靛蓝短袖工装衬衫，黑色领边，黑色圆领内搭。长相和衣着以他的身份母版为准。', TU['ryan']),
 }
-HE_LOOK = ('Rafael：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，凌乱翘起的黑色短发、几缕垂在额前；右侧颈部黑色荆棘纹身，一条粗银链，两条小臂满臂纹身。'
+HE_LOOK = ('Rafael：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，凌乱翘起的黑色短发、几缕垂在额前；右侧颈部黑色荆棘纹身，一条粗银链，两条小臂满臂纹身；身材修长不夸张，肤色自然、不晒黑，脸上没有污点和沙粒。'
        '日常穿着：褪色炭灰色圆领 T 恤，浅色水洗蓝牛仔裤；手指上空无一物。他的长相和服装全程不变，以参考的身份母版为准。')
 HER_FP = '她的手外形全程固定：纤细白皙的女性双手，指甲短而圆、裸色素甲，手指和手腕上空无一物，袖口是奶油色开衫的长袖。'
 HER = ('她：二十多岁的成年女人，白皙皮肤，成熟精致的脸，高颧骨、窄下颌、细直的鼻子，灰蓝色眼睛，柔和的灰褐色眼妆，鼻梁上淡淡的雀斑，豆沙玫瑰色的饱满嘴唇，不显幼态；很长的米金色层次长发（浅棕发根、沙色挑染，中分，不是银灰也不是金黄）、脸旁有碎发；'
-       '奶油色长袖开衫，里面奶油色和黑色条纹的针织上衣，奶油白阔腿长裤，条纹系带腰带，黑色平底鞋；'
+       '奶油色长袖开衫，里面奶油底灰黑横条的一字领无袖细罗纹针织上衣（没有翻领、没有纽扣、没有短袖），奶油白阔腿长裤，条纹系带腰带，黑色平底鞋；'
        '指甲短而圆、裸色素甲，手指和手腕上空无一物。她的长相、发型和服装全程不变，严格以她的身份母版（正面头像、全身正面、多角度）为准。她的表情自然克制，情绪在眼神里。')
 WOLF = ''
 SEAM = '第一个镜头接着上一刻往下演：两个人的姿势、手的位置和道具的状态都和上一刻一样，不把上一刻已经做完的动作再做一遍；换景别时同时换机位，不在同一个机位上突然放大缩小。'  # V1.2：评分里接缝跳回首帧、同轴跳切扣分最多
-KISS = '吻戏的拍法（V1.4）：靠近只用一个干脆的动作，不慢慢凑近；从嘴唇贴上开始，到动作里写明分开之前，是同一次连续的吻，正常速度，动作一直在细微地变化（头部角度微调、他的手在她背上收紧、她的手指攥紧他的衣领），不慢动作、不定格、不僵住；切镜之后的镜头一开始两人就已经在接吻，接着上一镜继续，不重新靠近，不中途分开再吻；手的特写里手一定在动。两人的五官、发型、服装和男左女右在吻中保持不变：每个接吻镜头里 Rafael 的脸都在画面左半边、脸朝画面右侧，她的脸都在画面右半边、脸朝画面左侧，近景和侧面近景也不对调（V1.4 便携包自测第 1 轮最后一个接吻近景两人左右对调）。'
+KISS = '吻戏的拍法（V1.4）：靠近只用一个干脆的动作，不慢慢凑近；从嘴唇贴上开始，到动作里写明分开之前，是同一次连续的吻，正常速度，动作一直在细微地变化（头部角度微调、他的手在她背上收紧、她的手指攥紧他的肩），不慢动作、不定格、不僵住；切镜之后的镜头一开始两人就已经在接吻，接着上一镜继续，不重新靠近，不中途分开再吻；手的特写里手一定在动。两人的五官、发型、服装和男左女右在吻中保持不变：每个接吻镜头里 Rafael 的脸都在画面左半边、脸朝画面右侧，她的脸都在画面右半边、脸朝画面左侧，近景和侧面近景也不对调（V1.4 便携包自测第 1 轮最后一个接吻近景两人左右对调）。'
 ACT = '表演自然：Rafael 放松时带一点懒散的笑意，认真时笑意收住、目光聚焦，说话轻缓，不压嗓、不耳语；她说话轻而清楚；情绪在眼神和嘴角。'
 STYLE = ('画面和角色参考图是同一种渲染和画质：高级半写实 2.5D 三维角色渲染，皮肤细节自然，眼睛和睫毛清晰，发丝分明，织物质感清楚，对比干净；不雾、不柔焦、脸上不发光、不磨皮、不塑料感、不动漫，标准焦段，五官比例自然，画风全程统一；时间和光线按这个地点写的来，肤色保持参考图的颜色，不偏橙不偏黄。'
          '镜头之间一律硬切，不用叠化、溶镜、淡入淡出、闪白或闪黑；同一地点所有镜头的光线、色温和色调完全一致，跟随这个地点的主光源，不突然变冷变暖、变亮变暗。')
@@ -63,7 +63,7 @@ def stage_text(st, place):
 
 
 FRAMING = {'特写': '特写（只拍眼睛、手或物件）', '近景': '近景（胸部以上）', '中近景': '中近景（腰部以上）', '插入特写': '插入特写（只拍手或物件）', '中景': '中景（膝盖以上）', '全景': '全景（人物全身和周围空间）',
-           '空镜': '空镜（这个地点的环境，画面里没有任何人）',
+           '空镜': '空镜（这个地点的环境，画面里完全没有人，也没有手臂、身体或行驶的车辆经过，没有东西进出画面，镜头全程静止）',
            '双人全景': '双人全景（两人全身和周围空间都在画面里，男左女右）', '双人中景': '双人中景（两人膝盖以上同框，男左女右）',
            '双人中近景': '双人中近景（两人腰部以上同框，男左女右）', '双人近景': '双人近景（两人胸部以上同框，男左女右，两张脸都清楚）',
            '单人中近景': '单人中近景（一个人腰部以上）', '单人近景': '单人近景（一个人胸部以上）'}
@@ -402,6 +402,19 @@ def prompts(sp, mode, *a, **kw):
     return res
 
 
+def anchor_prompt(state, issues, w=None):
+    """V2.2：把上一轮末帧回正成定装图的样子，再交给下一轮。地点、姿态、穿着都不动，把累积的漂移擦掉；只拍到一个人时把另一个也带进来（只露一个人的末帧，下一轮第 1 段会把另一个人的衣服画错：V2.2 第 4 轮她变成黑背心牛仔裤）。"""
+    w = w or {}
+    return ('Image 1 is a frame from a film. Repaint this moment as one clean frame: the same location, background, lighting, poses, expressions and objects. Both people are fully in the frame with both faces visible, the man on the left and the woman on the right; if Image 1 only shows one of them, pull the camera back so the other is there too at the natural distance. '
+            f'His clothes right now (Chinese): {w.get("he") or HE_DEFAULT}。 Her clothes right now (Chinese): {w.get("she") or SHE_DEFAULT}。 Exactly these clothes, nothing added back: if his torso is bare there is no shirt, no open shirt and no jacket on him. '
+            'Image 2 is the man\'s face and hair reference (Rafael), Image 3 is the woman\'s face and hair reference. Only correct what has drifted away from them. '
+            + (f'The state of this moment, keep it exactly (Chinese): {state}。 ' if state else '')
+            + (f'Also fix (Chinese): {"；".join(issues)}。 ' if issues else '')
+            + 'He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, tattoo sleeves on both forearms ending at the wrist, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. Short nude nails, no earrings, no necklace. '
+            'Every object appears only once; there is at most one motorcycle or car. Keep the same semi-realistic high-detail character rendering. Correct anatomy, five fingers on each hand. Add nothing new. No text, no logo, no watermark.')
+
+
 def key_prompt(sp, moved):
     """V2.0：第 2 段第一张画面（状态关键帧）的修图指令。两段同时生成，第 2 段看不到第 1 段；衣服、姿态、地点变化都先画成这一张，两段都对着它演。"""
     w = sp.get('wardrobe_end') or {}
@@ -418,9 +431,10 @@ def key_prompt(sp, moved):
             + (f'Fixed object looks (Chinese): ' + '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items()) + '。 ' if sp.get('looks') else '')
             + (f'Clothes lying on the ground are only the ones he took off, the same color as these: {HE_DEFAULT}. Nothing of hers is on the ground unless written above. ' if w.get('he') else '')
             + 'If his torso is bare: a natural fit build, not a bodybuilder, no oil, the same skin color as his face, lit by the light of this location. '
-            + 'Exactly two people: the man on the left of the frame, the woman on the right, both faces visible. He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, tattoo sleeves on both forearms ending at the wrist, no tattoos on his hands, no rings, no watch. '
-            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. '
-            'Keep the same semi-realistic high-detail character rendering as Image 1. Correct anatomy, five fingers on each hand. No text, no logo, no watermark.')
+            + ('Nothing from the previous location comes along: no plates, food, cartons or furniture from it, only what is written under Objects. ' if moved else '')
+            + 'Exactly two people: the man on the left of the frame, the woman on the right, both faces visible. He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, tattoo sleeves on both forearms ending at the wrist, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. Short nude nails, no earrings, no necklace. '
+            'Every object appears only once; there is at most one motorcycle or car. Keep the same semi-realistic high-detail character rendering as Image 1. Correct anatomy, five fingers on each hand. No text, no logo, no watermark.')
 
 
 def line_times(sp, mode):

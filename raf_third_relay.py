@@ -170,9 +170,16 @@ def prepare_frame(s, rid, seg2_url):
                 U.urlretrieve(fixed, FR / f'{rid}_last_scene.jpg'); url = fixed; qa['scene_fixed'] = fixed
                 jpg.write_bytes((FR / f'{rid}_last_scene.jpg').read_bytes())
             except Exception as e: qa['scene_fix_err'] = str(e)[:200]; log('SCENEFIXFAIL', rid, e)
-        if not high and not scene_bad and s.get('frame_pending') == rid: s['frame_raw'] = url  # 没有严重问题才允许下一轮不等就用；有严重问题必须等修图，不让错误上屏
+        if s.get('frame_pending') == rid and not scene_bad: s['frame_raw'] = url  # V2.2：不再因为质检挡下一轮，赶不上修好的图就用原图
+        issues = [i['text'] for i in qa.get('issues', []) if isinstance(i, dict) and i.get('level') == 'high']
+        try:  # V2.2 每轮回正末帧：第 1 段只有首帧没有身份参考，脸、发型、肤色、肌肉、戒指一轮轮累积（第 12 轮起头发变卷，第 15–17 轮脸上一片黑点、晒黑、肌肉越来越夸张）。观众看视频时后台做，不增加等待
+            aj = FR / f'{rid}_anchor.jpg'; qa['anchor_via'] = qa_guard.key_frame(L.anchor_prompt(st_now or '', issues, s.get('wardrobe')), [url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], aj, hedge=1)
+            diff = qa_guard.scene_diff(jpg, aj); qa['anchor_diff'] = diff
+            if diff <= qa_guard.ANCHOR_DIFF_MAX: url = c.upload(aj)['url']; qa['anchored'] = True; high = []
+            else: log('ANCHOR', rid, 'rejected: scene changed', diff)
+        except Exception as e: qa['anchor_err'] = str(e)[:200]; log('ANCHORFAIL', rid, str(e)[:160])
         soft = [] if high else [i['text'] for i in qa.get('issues', []) if isinstance(i, dict) and i.get('level') == 'high' and i.get('kind') in ('face', 'skin', 'light')]  # light（窗外像白天）也后台修：v0.16 一次阻塞修图被退回，下一轮白等 2.5 分钟
-        if st_now: soft = []
+        if st_now or qa.get('anchored'): soft = []
         if soft:  # v0.15：脸偏老、皮肤粗糙会顺着首帧一轮轮累积（v0.14 第 11–13 轮），后台修，不挡下一轮：赶得上就用修好的
             high = soft; qa['soft_fix'] = True
         if high:  # 只修严重问题（多人、女主入镜、警徽戒指、换装换人、文字、崩坏）；小偏差只记录
@@ -204,7 +211,7 @@ def state_text(s):
     w = s.get('wardrobe') or {}; t = []
     if w.get('he'): t.append('Rafael 穿着：' + w['he'])
     if w.get('she'): t.append('她穿着：' + w['she'])
-    if s.get('posture'): t.append('姿态：' + s['posture'])
+    if re.search('躺|俯在|骑|摩托', s.get('posture') or ''): t.append('姿态：' + s['posture'])  # V2.2：普通站着、坐着不算特殊状态（原来每轮都算，默认的修图从不触发）
     return '；'.join(t)
 
 
@@ -257,24 +264,16 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
         return job
 
     try:
-        sp_now = R[rid].get('spec') or {}
-        w_end = sp_now.get('wardrobe_end') or {}
-        st_seg = '；'.join(x for x in (('Rafael 穿着：' + w_end['he']) if w_end.get('he') else '', ('她穿着：' + w_end['she']) if w_end.get('she') else '', ('姿态：' + sp_now['posture_end']) if re.search('躺|俯在|骑|摩托', str(sp_now.get('posture_end') or '')) else '') if x) if i == 1 else ''
-        if st_seg: s['qa_pad'] = 12  # 播放页按第 2 段预计出片倒推开播，这里多算上检查的时间
         job = gen(c.build(**kw)); s['gen_ready_at'] = now()
-        if st_seg:  # V2.0：播放前查一遍全程状态；变回去了就重生成一次（第二次还不对也用它，不让观众一直等）
-            try:
-                mp4 = FR / f'{rid}_{i + 1}_st.mp4'; U.urlretrieve(job['video_url'], mp4); v = qa_guard.seg_state(mp4, st_seg); mp4.unlink(missing_ok=True)
-                s['state_check'] = v; log('SEGSTATE', rid, i + 1, json.dumps(v, ensure_ascii=False)[:200])
-                if v.get('bad'):
-                    s['state_regen'] = True; s['qa_pad'] = 30; job = gen(c.build(**kw)); s['gen_ready_at'] = now()
-            except Exception as e: log('SEGSTATEFAIL', rid, i + 1, str(e)[:160])
-        s.pop('qa_pad', None)
         cast = list((R[rid].get('spec') or {}).get('cast') or []) + [x['name'] for x in ((R[rid].get('spec') or {}).get('extras') or []) if isinstance(x, dict) and x.get('name')]  # V1.5：其他角色不算多余的人
         props = [x.get('name') for x in ((R[rid].get('spec') or {}).get('props') or []) if isinstance(x, dict) and x.get('name')] + [w + '（披在她身上）' for w in (R[rid].get('worn') or [])]
-        def bg_qa(u=job['video_url'], jid=s.get('job_id')):  # V1.5 提速：段内快检移出等待路径，只记录，不再重生成
+        sp_now = R[rid].get('spec') or {}; w_end = sp_now.get('wardrobe_end') or {}
+        st_seg = '；'.join(x for x in (('Rafael 穿着：' + w_end['he']) if w_end.get('he') else '', ('她穿着：' + w_end['she']) if w_end.get('she') else '', ('姿态：' + sp_now['posture_end']) if re.search('躺|俯在|骑|摩托', str(sp_now.get('posture_end') or '')) else '') if x) if i == 1 else ''
+        def bg_qa(u=job['video_url'], jid=s.get('job_id')):  # V1.5 提速：段内快检移出等待路径，只记录，不再重生成。V2.2：状态复查也只记录（挡开播时加 12 秒，重生成再加 30–45 秒，3 次触发都是半躺算不算躺这种误报）
             mp4 = FR / f'{rid}_{i + 1}_q0.mp4'
-            try: U.urlretrieve(u, mp4); q = qa_guard.seg_check(mp4, cast=cast, props=props)
+            try:
+                U.urlretrieve(u, mp4); q = qa_guard.seg_check(mp4, cast=cast, props=props)
+                if st_seg: s['state_check'] = qa_guard.seg_state(mp4, st_seg); log('SEGSTATE', rid, i + 1, 'logged', json.dumps(s['state_check'], ensure_ascii=False)[:200])
             except Exception as e: q = {'regen': False, 'err': str(e)[:160]}; log('SEGQAFAIL', rid, i + 1, e)
             s.setdefault('seg_qa', []).append(dict(q, job=jid)); save(rid)
             for x in (mp4, mp4.with_suffix('.grid.jpg')): x.unlink(missing_ok=True)  # V1.9：质检下载的视频用完就删（CDN 上有，这里攒了 1.7G）
@@ -353,8 +352,8 @@ def _worker(rid):
         r.update(status='error', err='导演层失败：' + str(e)[:200]); save(rid); log('DIRFAIL', rid, e); return
     # 2) 首帧：等上一轮的末帧准备好（第 1 轮是开场末帧）
     # V1.5 提速：不等末帧质检和修图。修好了用修好的；质检没严重问题用原图；其余用刚抽出来的末帧；连它都还没传上去（点得极快）才等几秒
-    if state_text(s) and not s['frame_ready'].is_set():  # V2.0：穿着或姿态不是默认时，多等一下质检，不把穿回去的衣服带进下一轮
-        s['frame_ready'].wait(FIX_WAIT)
+    if not s['frame_ready'].is_set():  # V2.0：多等一下回正的末帧。V2.2：等 20 秒改 6 秒（原来姿态总有值，第 3 轮白等 20 秒）
+        s['frame_ready'].wait(6)
     if s['frame_ready'].is_set(): frame_url = s.get('frame_url'); r['frame_pick'] = 'ready'
     elif s.get('frame_raw'): frame_url = s['frame_raw']; r['frame_pick'] = 'checked raw'
     else:
@@ -378,14 +377,14 @@ def _worker(rid):
     w0, w1 = sp.get('wardrobe_start') or {}, sp.get('wardrobe_end') or {}
     moved_now = L.moved(sp, s.get('set') or director.OPEN_SET)
     sp['use_key'] = None
-    if r['mode'] not in L.SEG1_LOCK and sp.get('key') and (moved_now or w0 != w1 or sp.get('posture_changed')):
+    plain_move = moved_now and not w1 and director._pose(sp.get('posture_end')) in ('站', '坐')  # V2.2：穿着默认、站着或坐着的普通换场不画关键帧（17 轮里 6 轮，每次多等 15–31 秒），用站位母版和服装母版
+    if r['mode'] not in L.SEG1_LOCK and sp.get('key') and not plain_move and (moved_now or w0 != w1 or sp.get('posture_changed')):
         tk = now(); r['status'] = 'keyframe'; r['mode'] = r['mode']; save(rid)
-        for attempt in range(2):
-            try:
-                kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], kj)
-                r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
-                sp['use_key'] = 'ref' if (moved_now or extra) else 'bridge'; break  # 有身份母版的配角要带参考图，首尾帧模式带不了
-            except Exception as e: log('KEYFAIL', rid, attempt, str(e)[:200])
+        try:
+            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], kj)
+            r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
+            sp['use_key'] = 'ref' if (moved_now or extra) else 'bridge'  # 有身份母版的配角要带参考图，首尾帧模式带不了
+        except Exception as e: log('KEYFAIL', rid, str(e)[:200])  # V2.2：不再重试和退回 Waku（曾一次等 195 秒），这一轮按没有关键帧走
         r['key_sec'] = round((now() - tk) / 1000, 1); log('KEY', rid, sp['use_key'], r['key_sec'], 's')
     segs = L.prompts(sp, r['mode'], hands_in_frame=hands_now, set_start=s.get('set') or director.OPEN_SET, stage_start=s.get('staging') or 'bed', seg2_first=L.SEG2_FIRST and not extra, worn='、'.join(w for w in worn_now if w != L.JACKET), jacket_start=jacket_start)
     r['line_times'] = L.line_times(sp, r['mode'])  # V1.8：字幕只在说这句时显示

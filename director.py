@@ -54,7 +54,9 @@ Rafael 第 6–8 轮：她说“骑车带我去兜风”，视频只有戴头盔
 - 把她的话还原成现实里这件事本来的样子，写进 intent（一句话：谁在哪、谁对谁做什么、观众看到什么）。例如：
   · “带我兜风”“骑车带我” = 她坐在他摩托车后座，他骑车带她，车在路上跑。不是她自己骑，也不是到了目的地站着说话。
   · “开车带我去” = 两人坐在行驶的车里，他开车；“背我” = 他把她背在背上走；“抱我上楼” = 他横抱着她上楼；“陪我走走” = 两人并排走在路上。
-  · “把衣服脱了”指的是谁、脱哪件，按当前这一刻最自然的理解，脱了就一直脱着。
+  · “把衣服脱了”指的是谁、脱哪件，按当前这一刻最自然的理解，脱了就一直脱着。她没说谁（“脱掉衣服，继续吻”），就是两个人都脱最外面一层：他脱上衣，她脱开衫或外套（V2.2 第 14 轮只脱了她的，她下一句只好再说一遍“你把衣服脱了”）。
+  · 她要碰、要看他身上哪里（“摸你腹肌”），就把那个地方拍进画面：用双人中景、略俯，看得见她的手落在那里，不用只拍脸和胸口的近景。
+  · 她问“喜欢我什么”这类问题，这一轮就答到具体的事（哪一天、做了什么、她哪个小习惯），不说概括的话，不用下一轮再问（V2.2 第 4、5 轮）。
 - 过程本身就是她要的体验时，过程就是兑现，必须真的拍出来，不用“到达之后”代替（拍法见导演分镜）。
 - 她不用说第二遍。一句话能听懂的事当轮就给对。
 
@@ -202,6 +204,8 @@ V1.3 的写法是慢慢靠近、短暂一吻、静止的手、分开，实际只
 【写完自查：按视频效果评测标准前置（V1.2）】
 来源：第三视角 56 条实时片段按《抖音｜图像&视频效果评测标准》V2.0（视频）打分，最弱的是执行指令 3.05、动作流畅 3.07、音画同步 3.07；结构、参考保持的 2 分以下理由集中在两人手部特写、接缝和画外声音。输出前逐条核对：
 - 执行指令：每拍只写一个主要动作，写全谁对谁、用哪只手、碰哪里；最关键的动作放在 seg2 前两拍。
+- 手的动作放进双人中近景或中景，不放近景（V2.2：手一进近景就冒出戒指和美甲）。
+- 上车这一拍只有车已经在画面里才写；车不在这个地点的画面里就省掉，seg1 只做反应，seg2 空镜之后直接在路上（V2.2 第 9 轮 seg1 凭空冒出车，背景也跳了）。
 - 手：不拍两人手交握、手叠手、十指相扣的特写（评分里三只手、两个大拇指、手表在两只手之间跳）。牵手、握手用双人中景或中近景拍，手部插入特写只拍一个人的一只手（或一只手和一件道具）。
 - 画外声音那一拍（门外的 Maya、Ryan、Evan）：拍画内的一个人在听的单人近景，动作写眼神或下颌的反应，两人都不说话；不在同一拍里又安排画内人的台词。
 - 她的台词那一拍：说话人写“她”，镜头给她的单人近景或她脸看得清的双人镜头，Rafael 在这一拍不说话；不和他的台词放在同一拍。
@@ -458,7 +462,7 @@ def lint(sp, mode, ctx=None):
             if any(w in str(b[0]) for w in ('狼', '贴近镜头', '闭上眼', '靠近镜头', '凑近', '起身', '站起')):
                 bad.append(f'10+10 的第 1 段是原位一镜到底（首尾帧都锁成上一刻画面），「{str(b[0])[:20]}」要靠近、起身或变形，回不到首帧：放进 seg2'); break
     if ctx.get('must_scene') and not sp.get('scene_changed') and it != 'direction':
-        bad.append(f"这个地点已经演了 {ctx.get('place_rounds')} 轮，她这一句不是明确引导（{it}），这一轮必须换场（scene_changed=true，用动作切到新地点）")
+        bad.append(f"【必改】这个地点已经演了 {ctx.get('place_rounds')} 轮，她这一句不是明确引导（{it}），这一轮必须换场（scene_changed=true，用动作切到新地点）")
     mc = ctx.get('must_card')
     if mc and (it == 'vague' or (it == 'question' and ctx.get('stall', 0) >= 2)) and mc not in [str(k).strip().upper() for k in (sp.get('cards_done') or [])]:
         bad.append(f'她这一句是 {it}，关键片段 {mc} 已经到期：这一轮必须把 {mc} 的核心事件演出来，并写进 cards_done')
@@ -697,7 +701,8 @@ def state_issues(sp, ctx):
     hit = [g for g in off if any(re.search(g.replace(' ', ' ?'), str(b[0])) for b in seg2)]
     if hit:
         bad.append(f'【必改】他已经脱了{"、".join(hit)}：seg2 不再写这件衣服（不拧、不搭肩、不拎着），脱下来时当场丢在地上；只写他此刻的样子做别的动作')
-    if any(re.search('跨上|坐上|上车|上了车|下车|下了车|落座|坐下|站起|起身|躺下', str(b[0])) for b in seg2):
+    moved_at = next((i for i, b in enumerate(seg2) if '切到' in str(b[0])), -1) if sp.get('scene_changed') else -1  # V2.2：换场前收住原地点的动作（他站起身）不算，不为它打回（17 轮里多花 3 次、每次 15 秒）
+    if any(re.search('跨上|坐上|上车|上了车|下车|下了车|落座|坐下|站起|起身|躺下', str(b[0])) for b in seg2[moved_at + 1:]):
         bad.append('【必改】上车下车、坐下站起、躺下都放进 seg1 或直接省掉，seg2 从第一拍起就已经是变化之后的姿态（两段同时生成，放在 seg2 会反复横跳）')
     if changed and any(WEAR_NOW.search(str(b[0])) for b in seg2):
         bad.append('【必改】穿脱衣服放进 seg1 的一拍演完，seg2 从第一拍起就是变化之后的样子，不再写脱、穿的动作（两段同时生成，放在 seg2 会反复横跳），并写好 key')
@@ -727,6 +732,9 @@ def settle_state(sp, cont, wardrobe):
 TIME_SKIP = re.compile('第二天|次日|关灯|熄灯')
 
 
+HER_TOP = '一字领无袖贴身细罗纹针织上衣（奶油底、灰黑色横条，没有翻领、没有纽扣、没有短袖）'
+
+
 def settle_wardrobe(sp, prev):
     """V1.8：记下这一轮开始和结束时的穿着。穿着变了但分镜里没有演（也没有时间跳跃），就退回原来的，不让衣服凭空出现或消失。"""
     start = dict(prev or {}); end = dict(start); w = sp.get('wardrobe') if isinstance(sp.get('wardrobe'), dict) else {}
@@ -736,6 +744,7 @@ def settle_wardrobe(sp, prev):
     text = ' '.join(str(b[0]) for k in ('seg1', 'seg2') for b in sp.get(k) or [])
     if end.get('she') == start.get('she') and re.search('开衫[^，。；]{0,10}(滑落|脱|褪|滑下|落)|(脱|褪)[^，。；]{0,6}开衫', text): end['she'] = '奶油色和黑色条纹针织上衣，奶油白阔腿长裤，开衫已经脱下'  # 导演层写了大衣滑落却没记（S035613ebe 第 3 轮）
     if end != start and not WEAR_ACT.search(text) and not TIME_SKIP.search(text): sp['wardrobe_reverted'] = end; end = dict(start)
+    if end.get('she'): end['she'] = end['she'].replace('奶油色和黑色条纹针织上衣', HER_TOP) if HER_TOP else end['she']  # V2.2：写死款式（只写“条纹针织上衣”，关键帧画成带领短袖 POLO，之后一路带下去）
     sp['wardrobe_start'] = start; sp['wardrobe_end'] = end; sp['wardrobe_changed'] = bool(start or end)
 
 

@@ -77,28 +77,27 @@ def _edit(prompt, images, timeout):
 KEY_MODEL = 'google/gemini-3.1-flash-lite-image'  # 2026-11-01 实测：同一条指令 22.8 秒、约 $0.035；Waku 通道排队时 65–120 秒，等不起
 
 
-def key_frame(prompt, images, out, timeout=70):
-    """V2.0：状态关键帧（第 2 段第一张画面），写到本地文件 out。先走 OpenRouter 直连，失败退回 Waku。"""
+ANCHOR_DIFF_MAX = 70  # 回正可以改构图（两轮之间隔着选择点，看不出跳），差到这个程度才是换了地点
+
+
+def key_frame(prompt, images, out, timeout=45, hedge=2):
+    """V2.0：状态关键帧（第 2 段第一张画面），写到本地文件 out。V2.2：同时发两个请求，先回来的用（单次 13–56 秒，抖动大），不再退回 Waku（曾一次等 195 秒）；都失败就抛错，这一轮按没有关键帧走。"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     body = {'model': KEY_MODEL, 'modalities': ['image', 'text'], 'image_config': {'aspect_ratio': '9:16'}, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': prompt}] + [{'type': 'image_url', 'image_url': {'url': u}} for u in images]}]}
-    try:
+    def one(_):
         req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
         with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
         u = ((j['choices'][0]['message'].get('images') or [{}])[0].get('image_url') or {}).get('url') or ''
-        if u.startswith('data:'):
-            Path(out).write_bytes(base64.b64decode(u.split(',', 1)[1])); return 'openrouter'
-    except Exception as e: print('KEYOR', str(e)[:160], flush=True)
-    params = {'prompt': prompt, 'images': images, 'aspect_ratio': '9:16', 'resolution': '1k', 'output_format': 'jpeg'}
-    j = {}
-    for _ in range(4):  # waku 偶尔 fetch failed：请求没到服务端，马上再发
-        r = subprocess.run(['waku', 'gen', 'run', 'google/nano-banana-2.1/edit', '--capability', 'multimodal.generate.image', '--params', json.dumps(params)], capture_output=True, text=True, timeout=150)
-        m = re.search(r'\{.*\}', r.stdout, re.S); j = json.loads(m.group(0)) if m else {}
-        if j.get('asset_url') or j.get('job_id') or 'fetch failed' not in (r.stderr + r.stdout): break
-        time.sleep(1)
-    if not j.get('asset_url') and j.get('job_id'):
-        r = subprocess.run(['waku', 'gen', 'result', j['job_id'], '--wait', '--timeout', '150'], capture_output=True, text=True, timeout=180)
-        m = re.search(r'\{.*\}', r.stdout, re.S); j = json.loads(m.group(0)) if m else {}
-    if not j.get('asset_url'): raise RuntimeError('关键帧没有返回地址：' + (r.stdout[-200:] or r.stderr[-200:]))
-    U.urlretrieve(j['asset_url'], out); return 'waku'
+        if not u.startswith('data:'): raise RuntimeError('没有返回图片')
+        return base64.b64decode(u.split(',', 1)[1])
+    ex = ThreadPoolExecutor(hedge); err = None
+    try:
+        for f in as_completed([ex.submit(one, i) for i in range(hedge)], timeout=timeout + 2):
+            try: Path(out).write_bytes(f.result()); return 'openrouter'
+            except Exception as e: err = e
+    except Exception as e: err = e
+    finally: ex.shutdown(wait=False)
+    raise RuntimeError('关键帧失败：' + str(err)[:160])
 
 
 def fix_state(frame_url, issues, state, timeout=120):

@@ -19,4 +19,4 @@ for n, t in enumerate(INP, 1):
     print(f"R{n} {t} | {r.get('status')} {r.get('mode')} {time.time() - t0:.0f}s key={sp.get('use_key')} {r.get('key_sec')}s dir={r.get('director_sec')} {r.get('err') or ''}", flush=True)
     print('   posture', sp.get('posture_end'), '| wardrobe', sp.get('wardrobe_end'), flush=True)
     if r.get('status') == 'error': break
-    time.sleep(12)  # 给后台抽末帧和质检留时间，和真人点得差不多
+    time.sleep(28)  # 给后台抽末帧和质检留时间，和真人点得差不多

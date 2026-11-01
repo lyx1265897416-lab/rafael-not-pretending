@@ -30,3 +30,8 @@ tests/review_sheets.py.bak
 tests/run_v20*.log
 review/
 pe/history/
+tests/kt_*
+tests/key_*
+tests/anchor_cmp.jpg
+tests/dry_haiku.log
+tests/run_v22*.log

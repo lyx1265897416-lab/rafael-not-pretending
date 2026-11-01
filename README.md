@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/cover.jpg" width="300" alt="Rafael 和她在卧室，第一轮实时生成的起始画面"></p>
+<p align="center"><img src="assets/cover.jpg" width="300" alt="封面：夜晚酒吧里，她靠在 Rafael 肩头，两人看向镜头"></p>
 
 <h1 align="center">Rafael｜这次，不是演的</h1>
 <p align="center"><b>Not Pretending This Time</b> · 女性向第三视角开放式实时互动剧</p>
@@ -12,11 +12,11 @@
 
 认识六年、合租三年的修车店老板 Rafael，昨晚为了替她挡住前任，临时扮演男友，有过一个吻。今天清晨，他承认临时的是男友身份，喜欢她不是，并清醒地正式约她。接下来怎么答，由观众决定：接受、需要时间、维持朋友、拒绝都是有效剧情。
 
-### 开场：昨晚的吻 → 今早的告白（96.5 秒）
+### 开场：昨晚的吻 → 清晨空镜 → 今早的告白（101.5 秒）
 
 ![开场每 8 秒一帧](assets/opening-strip.jpg)
 
-吻戏 V7（61 秒）在前，开场 V20（35.5 秒）在后，统一 720p 和 -16 LUFS。
+吻戏 V7（61 秒）→ 窗边空镜（5 秒，黎明到早晨）→ 开场 V20（35.5 秒），统一 720p 和 -16 LUFS。开场播完停在 Rafael 正面近景等她回答，接着出选项。
 
 ### 角色
 

@@ -1,29 +1,29 @@
 {
- "job_id": "job_b023a43c6b198fa0be7294929205f993",
+ "job_id": "job_a1ea5ce5be9aeb3e84c9e86b4eacdfcc",
  "request": {
   "model": "vivix-w1-ultrafast",
   "jobs": [
    {
-    "prompt": "固定机位，一镜到底：镜头像架在三脚架上，全程不移动、不切镜。首帧和尾帧是同一张画面，两个人的位置、姿势、表情和距离全程和首帧一样，只有很细小的动作：呼吸、眨眼、发丝微动。Rafael 在画面左侧坐在床沿看着她，她在画面右侧靠在床头看着他。两人都闭着嘴，不说话。画面和角色参考图是同一种渲染和画质：高级半写实 2.5D 三维角色渲染，皮肤细节自然，眼睛和睫毛清晰，发丝分明，织物质感清楚，对比干净；不雾、不柔焦、脸上不发光、不磨皮、不塑料感、不动漫，标准焦段，五官比例自然，画风全程统一；时间和光线按这个地点写的来，肤色保持参考图的颜色，不偏橙不偏黄。镜头之间一律硬切，不用叠化、溶镜、淡入淡出、闪白或闪黑；同一地点所有镜头的光线、色温和色调完全一致，跟随这个地点的主光源，不突然变冷变暖、变亮变暗。约束：无字幕，无文字，无旁白，没有其他人，没有背景音乐。",
+    "prompt": "固定机位，一镜到底：镜头像架在三脚架上，全程不移动、不切镜。首帧和尾帧是同一张画面，构图、姿势、表情全程和首帧一样，只有很细小的动作：呼吸、眨眼、发丝微动。Rafael 一个人在画面里，正面近景，看着镜头旁边的她，闭着嘴不说话，安静地等她回答。画面和角色参考图是同一种渲染和画质：高级半写实 2.5D 三维角色渲染，皮肤细节自然，眼睛和睫毛清晰，发丝分明，织物质感清楚，对比干净；不雾、不柔焦、脸上不发光、不磨皮、不塑料感、不动漫，标准焦段，五官比例自然，画风全程统一；时间和光线按这个地点写的来，肤色保持参考图的颜色，不偏橙不偏黄。镜头之间一律硬切，不用叠化、溶镜、淡入淡出、闪白或闪黑；同一地点所有镜头的光线、色温和色调完全一致，跟随这个地点的主光源，不突然变冷变暖、变亮变暗。约束：无字幕，无文字，无旁白，画面里只有 Rafael 一个人，没有背景音乐。",
     "duration": 5,
     "aspect_ratio": "9:16",
-    "first_frame_image": "https://static.vivi-x.ai/images/2026/11/01/ce10f84e38a56368.jpg",
-    "last_frame_image": "https://static.vivi-x.ai/images/2026/11/01/ce10f84e38a56368.jpg"
+    "first_frame_image": "https://static.vivi-x.ai/images/2026/11/01/175724ac5b683cfb.jpg",
+    "last_frame_image": "https://static.vivi-x.ai/images/2026/11/01/175724ac5b683cfb.jpg"
    }
   ]
  },
  "status": "succeeded",
- "video_url": "https://crsr-fnv.vivi-x.ai/clips/job_b023a43c6b198fa0be7294929205f993/job_b023a43c6b198fa0be7294929205f993.mp4",
+ "video_url": "https://crsr-fnv.vivi-x.ai/clips/job_a1ea5ce5be9aeb3e84c9e86b4eacdfcc/job_a1ea5ce5be9aeb3e84c9e86b4eacdfcc.mp4",
  "aspect_ratio": "9:16",
  "duration": 5,
  "error": null,
- "created_at": "2026-11-01T03:10:31.796423Z",
- "updated_at": "2026-11-01T03:10:37.830113Z",
- "generate_seconds": 22.6,
+ "created_at": "2026-11-01T07:36:59.746971Z",
+ "updated_at": "2026-11-01T07:37:05.734232Z",
+ "generate_seconds": 21.4,
  "file": {
   "path": "/Users/vicky/Interactive storyline/output/rafael-third-live-v1/site/media/IDLE0.mp4",
   "seconds": 5.042,
-  "bytes": 1508450
+  "bytes": 1252983
  },
- "total_seconds": 22.9
+ "total_seconds": 21.7
 }

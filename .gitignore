@@ -12,3 +12,13 @@ __pycache__/
 *.pyc
 masters/*.job
 .DS_Store
+cover-candidates/
+opening-bridge/*.before.mp4
+opening-bridge/*.job
+opening-bridge/keys/
+opening-bridge/v20_*
+opening-bridge/v7_end.jpg
+opening-bridge/*_sheet.jpg
+opening-bridge/run.log
+opening-bridge/refs_urls.json
+opening-bridge/cdn_new.txt

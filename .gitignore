@@ -39,3 +39,5 @@ audio-bank/*.mp3
 audio-bank/*.job
 audio-bank/gen.log
 tests/bike_src.jpg
+tests/run_v23*.log
+tests/dry_walk.py

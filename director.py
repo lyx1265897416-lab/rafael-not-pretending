@@ -54,6 +54,7 @@ Rafael 第 6–8 轮：她说“骑车带我去兜风”，视频只有戴头盔
 - 把她的话还原成现实里这件事本来的样子，写进 intent（一句话：谁在哪、谁对谁做什么、观众看到什么）。例如：
   · “带我兜风”“骑车带我” = 她坐在他摩托车后座，他骑车带她，车在路上跑。不是她自己骑，也不是到了目的地站着说话。
   · “开车带我去” = 两人坐在行驶的车里，他开车；“背我” = 他把她背在背上走；“抱我上楼” = 他横抱着她上楼；“陪我走走” = 两人并排走在路上。
+  · “走走”“散步”= 两人真的并排走，用一拍双人中景、侧面跟拍，两人朝画面左方慢慢走，脸朝对方三分之四（这是“不拍走动”的例外）；“去海边”= 到海滩上踩到沙子，观景处的石栏边不算。
   · “把衣服脱了”指的是谁、脱哪件，按当前这一刻最自然的理解，脱了就一直脱着。她没说谁（“脱掉衣服，继续吻”），就是两个人都脱最外面一层：他脱上衣，她脱开衫或外套（V2.2 第 14 轮只脱了她的，她下一句只好再说一遍“你把衣服脱了”）。
   · 她要碰、要看他身上哪里（“摸你腹肌”），就把那个地方拍进画面：用双人中景、略俯，看得见她的手落在那里，不用只拍脸和胸口的近景。
   · 她问“喜欢我什么”这类问题，这一轮就答到具体的事（哪一天、做了什么、她哪个小习惯），不说概括的话，不用下一轮再问（V2.2 第 4、5 轮）。
@@ -639,12 +640,14 @@ VEHICLE = re.compile('摩托|机车|汽车|轿车|单车|自行车|车身|车辆
 
 
 def clean_empty_shots(sp):
-    """V2.3：空镜里的车会自己动（第 7 轮店里的摩托自己往外滑）。空镜不写车，也不写走动的东西。"""
+    """V2.3：空镜里的车会自己动（第 7 轮店里的摩托自己往外滑）。空镜只写环境：不写车，不写人。地点名里的“摩托车店”不算。"""
     for k in ('seg1', 'seg2'):
         for b in sp.get(k) or []:
-            if str(b[2]).startswith('空镜') and VEHICLE.search(str(b[0])):
-                parts = re.split(r'(?<=[，；。,;])', str(b[0])); keep = [p for p in parts if not VEHICLE.search(p)]
-                b[0] = ''.join(keep).strip('，；,; ') or f"切到{sp.get('location') or '新地点'}的空镜：环境和光线，画面里没有人"
+            if not str(b[2]).startswith('空镜'): continue
+            t = str(b[0]); m = re.match(r'切到[^：:]{1,30}[：:]', t); head = m.group(0) if m else ''; body = t[len(head):]
+            parts = re.split(r'(?<=[，；。,;])', body); keep = [p for p in parts if not VEHICLE.search(p) and not re.search('他|她|两人|推开|走进', p)]
+            if len(keep) != len(parts) or not head:
+                b[0] = (head or f"切到{sp.get('location') or '新地点'}的空镜：") + (''.join(keep).strip('，；,; ') or '这个地点的环境和光线') + '，画面里没有人'
                 sp['empty_vehicle_cut'] = True
 
 
@@ -773,6 +776,8 @@ def state_issues(sp, ctx):
         bad.append('【必改】她要坐他的车去：seg2 至少 3 拍两人坐在行驶的车里（动作写“车行驶在……”），staging=side；不要用到达后站着说话代替')
     if FALL_ASK.search(t) and not all(LAY_ACT.search(str(b[0])) or str(b[2]).startswith(('空镜', '插入')) or '仍在接吻' in str(b[0]) for b in seg2[:1]):
         bad.append('【必改】她要的是倒下、躺下：倒下的动作放进 seg1 一镜到底演完，seg2 从第一拍起两人就已经躺着（写“躺”“俯在”），key 写清躺着的画面')
+    if re.search('走走|散步|逛逛', t) and not any(re.search('并排走|并肩走|慢慢走|走在', str(b[0])) for b in seg2):
+        bad.append('【必改】她要走走：seg2 要有一拍两人真的并排走（双人中景，侧面跟拍，写“两人并排慢慢走”），不要站着说话')
     def now(k, c): v = str(w.get(k) or ''); return str((ctx or {}).get(c) or '') if (not v or '不变' in v[:4]) else v
     off = _off_items(now('he', 'he_now'), now('she', 'she_now'))
     hit = [g for g in off if any(re.search(g.replace(' ', ' ?'), str(b[0])) for b in seg2)]

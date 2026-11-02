@@ -20,3 +20,7 @@ director.py、live_common.py、qa_guard.py、raf_third_relay.py 现在由 tools/
 
 ## V2.6（2026-11-02，复盘 Vicky 10 轮 S2305031e8）
 不拍换衣服过程、不裸露、穿着要求当轮换成、泳装款式写死。回归 S00020492f、S001112a3b、S002018f31、S002348c50、S0027432bd；决策 D32。
+
+
+## V2.7（2026-11-02，Vicky 截图：两个 Rafael、人飞过画面）
+开播前 hard_check，视频参考图不再带全身穿着图，第 2 段查过才开播。回归 S013731a45、S015219bb0；决策 D33。

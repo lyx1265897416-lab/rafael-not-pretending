@@ -174,7 +174,7 @@ def prepare_frame(s, rid, seg2_url):
         if s.get('frame_pending') == rid and not scene_bad: s['frame_raw'] = url  # V2.2：不再因为质检挡下一轮，赶不上修好的图就用原图
         issues = [i['text'] for i in qa.get('issues', []) if isinstance(i, dict) and i.get('level') == 'high']
         try:  # V2.2 每轮回正末帧：第 1 段只有首帧没有身份参考，脸、发型、肤色、肌肉、戒指一轮轮累积（第 12 轮起头发变卷，第 15–17 轮脸上一片黑点、晒黑、肌肉越来越夸张）。观众看视频时后台做，不增加等待
-            aj = FR / f'{rid}_anchor.jpg'; st_a = '；'.join(x for x in (st_now, ('姿态：' + s['posture']) if s.get('posture') and '姿态：' not in (st_now or '') else '') if x); qa['anchor_via'] = qa_guard.key_frame(L.anchor_prompt(st_a, issues, s.get('wardrobe'), s.get('holding') or '', bool(L.VEH.search(str(s.get('posture') or '') + str(s.get('holding') or '')))), [url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], aj, hedge=1)  # V2.4：站着、坐着也写进去；close-up 看不到下半身时，第 13 轮把坐着回正成站着
+            aj = FR / f'{rid}_anchor.jpg'; st_a = '；'.join(x for x in (st_now, ('姿态：' + s['posture']) if s.get('posture') and '姿态：' not in (st_now or '') else '') if x); qa['anchor_via'] = qa_guard.key_frame(L.anchor_prompt(st_a, issues, s.get('wardrobe'), s.get('holding') or '', bool(L.VEH.search(str(s.get('posture') or '') + str(s.get('holding') or '')))), [url, *[u or h for u, h in zip(L.key_people(s.get('wardrobe'), (s.get('she_looks') or {}).get((s.get('wardrobe') or {}).get('she') or '')), (qa_guard.HE_HEAD, qa_guard.HER_HEAD))]], aj, hedge=1)  # V2.4：站着、坐着也写进去；close-up 看不到下半身时，第 13 轮把坐着回正成站着
             diff = qa_guard.scene_diff(jpg, aj); qa['anchor_diff'] = diff
             if diff <= (qa_guard.ANCHOR_DIFF_BOTH if qa.get('her', True) and qa.get('face', True) and not s.get('frame_serious') else qa_guard.ANCHOR_DIFF_MAX): url = c.upload(aj)['url']; qa['anchored'] = True; high = []
             else: log('ANCHOR', rid, 'rejected: scene changed', diff)
@@ -219,13 +219,14 @@ def state_text(s):
 def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=False):
     s = R[rid]['segs'][i]
     kw = dict(prompt=prompt, duration=dur, aspect_ratio='9:16')
+    if i == 1: s['qa_pad'] = 8  # V2.7：第 2 段查过才给地址，开播不再按出片时间倒推（第 1 段播完要停 6 秒），也不会播到一半才发现要重新生成
     use = (R[rid].get('spec') or {}).get('use_key'); key = R[rid].get('key_url')
     if first == 'bridge': kw['first_frame_image'] = frame_url; kw['last_frame_image'] = key  # V2.0：首帧上一刻、尾帧关键帧，一镜到底把动作演出来
     elif i == 1 and use == 'bridge': frame_url = key; kw['first_frame_image'] = key  # V2.0：第 2 段从变化之后的样子开始
-    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + [u for u, _ in L.seg_looks(R[rid]['spec'], R[rid]['spec'].get('wardrobe_end'), len(list(extra)[:2]))]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
+    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
     elif first == 'lock': kw['first_frame_image'] = kw['last_frame_image'] = frame_url  # V0.17：10+10 第 1 段首尾帧都锁成上一刻画面
     elif first or (L.SEG2_FIRST and not extra): kw['first_frame_image'] = frame_url  # v0.11：第 2 段也从同一张首帧出发（参考图模式容易拍成第三人称、出现过肩）
-    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + ([u for u, _ in L.seg_looks(R[rid]['spec'], R[rid]['spec'].get('wardrobe_end'), 0)] if not extra else [])  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
+    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
     elif no_scene: kw['ref_images'] = [STAGING_URL, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
     else: kw['ref_images'] = [frame_url, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
     if i == 1 and L.TU.get('vehicle') and 'ref_images' in kw and len(kw['ref_images']) < 5 and any(L.RIDE_ON.search(str(b[0])) for b in (R[rid].get('spec') or {}).get('seg2') or []): kw['ref_images'] = kw['ref_images'] + [L.TU['vehicle']]  # V2.3：摩托每轮款式都在变
@@ -267,16 +268,19 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
 
     try:
         job = gen(c.build(**kw)); s['gen_ready_at'] = now()
-        sp_nc = R[rid].get('spec') or {}
-        if sp_nc.get('wardrobe_start') != sp_nc.get('wardrobe_end') or int(sp_nc.get('intimacy') or 0) >= 2 or not L.is_base((sp_nc.get('wardrobe_end') or {}).get('she')):  # V2.6：有穿脱或亲密的轮次开播前查裸露
-            for tn in range(2):
-                ncf = FR / f'{rid}_{i + 1}_nc.mp4'
-                try: U.urlretrieve(job['video_url'], ncf); nc = qa_guard.nude_check(ncf)
-                except Exception as e: nc = {'bad': False, 'err': str(e)[:120]}
-                ncf.unlink(missing_ok=True); s.setdefault('nude_check', []).append(nc); log('NUDECHECK', rid, i + 1, tn, json.dumps(nc, ensure_ascii=False)[:160])
-                if not nc.get('bad'): break
-                if tn == 1: raise RuntimeError('这段画面没有通过检查，已拦下，请再发送一次')
-                job = gen(c.build(**kw)); s['gen_ready_at'] = now()
+        sp_hc = R[rid].get('spec') or {}; names = ['男主', '女主'] + list(sp_hc.get('cast') or []) + [x['name'] for x in (sp_hc.get('extras') or []) if isinstance(x, dict) and x.get('name')]  # V2.7：每一轮每一段都查，不合格重新生成，最多三次，都不合格就拦下
+        people = f"{len(names)} 个人：{'、'.join(names)}" + ('；背景远处的路人不算' if re.search('酒吧|餐厅|夜宵|摊|街|人群|派对', str(sp_hc.get('set') or '')) else '') + ('；这一段他会变身成狼，不算错误' if sp_hc.get('wolf') else '')
+        magic = re.search('飞|魔法|悬浮|漂浮|超能力|变身|穿越', str(R[rid].get('input') or ''))
+        for tn in range(3):
+            hcf = FR / f'{rid}_{i + 1}_hc.mp4'
+            try: U.urlretrieve(job['video_url'], hcf); hc = qa_guard.hard_check(hcf, people)
+            except Exception as e: hc = {'bad': False, 'kinds': [], 'err': str(e)[:120]}
+            hcf.unlink(missing_ok=True); s.setdefault('hard_check', []).append(hc); log('HARDCHECK', rid, i + 1, tn, json.dumps(hc, ensure_ascii=False)[:200])
+            kinds = set(hc.get('kinds') or []) or ({'people'} if hc.get('bad') else set())
+            if magic: kinds.discard('motion')  # 她自己要飞、要魔法时不算
+            if not kinds: break
+            if tn == 2: raise RuntimeError('这段画面没有通过检查，已拦下，请再发送一次')
+            s['gate_regen'] = tn + 1; job = gen(c.build(**kw)); s['gen_ready_at'] = now()
         cast = list((R[rid].get('spec') or {}).get('cast') or []) + [x['name'] for x in ((R[rid].get('spec') or {}).get('extras') or []) if isinstance(x, dict) and x.get('name')]  # V1.5：其他角色不算多余的人
         props = [x.get('name') for x in ((R[rid].get('spec') or {}).get('props') or []) if isinstance(x, dict) and x.get('name')] + [w + '（披在她身上）' for w in (R[rid].get('worn') or [])]
         sp_now = R[rid].get('spec') or {}; w_end = sp_now.get('wardrobe_end') or {}
@@ -400,7 +404,14 @@ def _worker(rid):
         try:
             kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, L.key_people(w1, sp['she_look_url'])[0] or qa_guard.HE_HEAD, L.key_people(w1, sp['she_look_url'])[1] or qa_guard.HER_HEAD] + ([L.TU['vehicle']] if L.TU.get('vehicle') and re.search('骑|摩托', str(sp.get('posture_end'))) else []), kj)
             r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
-            if w1.get('she') and not L.is_base(w1['she']): s.setdefault('she_looks', {}).setdefault(w1['she'], r['key_url'])  # V2.6：这条裙子第一次画出来的样子，之后都照它
+            if w1.get('she') and not L.is_base(w1['she']) and w1['she'] not in (s.get('she_looks') or {}):  # V2.7：这条裙子第一次画出来的样子，只留她那半边（带两个人的图当参考会多画人），之后的关键帧和回正照它
+                def keep_look(src=kj, name=w1['she']):
+                    try:
+                        from PIL import Image
+                        im = Image.open(src); w_, h_ = im.size; cj = FR / f'{rid}_look.jpg'; im.crop((int(w_ * .45), 0, w_, h_)).convert('RGB').save(cj, 'JPEG', quality=92)
+                        s.setdefault('she_looks', {}).setdefault(name, c.upload(cj)['url'])
+                    except Exception as e: log('LOOKFAIL', rid, str(e)[:120])
+                threading.Thread(target=keep_look, daemon=True).start()
             sp['use_key'] = 'ref' if (moved_now or extra or sp.get('offscreen_change')) else 'bridge'  # V2.6：换衣服不走首尾帧（首尾帧会把中间的换衣过程演出来，第 4 轮她上身裸露）  # 有身份母版的配角要带参考图，首尾帧模式带不了
         except Exception as e: log('KEYFAIL', rid, str(e)[:200])  # V2.2：不再重试和退回 Waku（曾一次等 195 秒），这一轮按没有关键帧走
         r['key_sec'] = round((now() - tk) / 1000, 1); log('KEY', rid, sp['use_key'], r['key_sec'], 's')

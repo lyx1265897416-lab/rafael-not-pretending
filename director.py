@@ -319,6 +319,9 @@ SYSTEM = WRITER_PE + "\n" + DIRECTOR_PE + "\n" + OUTPUT_PE + r"""
 - 永远不拍换衣服的过程：seg1 她拿好衣服，让他等一下；seg2 第一拍是空镜（关着的房门，或新地点），下一拍她已经穿好。她明确说当着他的面换，他可以留在房间里，但镜头只拍他的反应。分镜不写穿、套、换、脱、拉平裙子。
 - 换下来的衣服不进画面，不写进 items。换了地点，手里没穿的衣服不跟着走。
 - 她要比基尼、泳衣就真的穿（代码写死成包得住的款式）。这是海边的日常穿着：分镜只写动作和表情，不写身材和身体部位，用中景或全景，从正面或侧面拍，不从身后拍。
+【人数和动作（V2.7，硬规则，Vicky：角色数量错误、动态错误要严格规避）】
+- 每个镜头写清画面里有谁。默认只有他和她两个人，他只有一个；配角要写进 cast 或 extras。空镜里没有人。
+- 动作都是普通人做得到的，不写跳跃、飞扑、腾空、旋转翻滚，她明确要求才写。空镜不写人物和人物的衣服。
 【不裸露（V2.6，硬规则，Vicky：严格规避，尤其女生）】
 - 任何一帧两人都穿着衣服。她要脱衣服时，她最多脱掉最外面的一层（开衫、外套），里面的上衣和裤子或裙子一直穿着；她再往下要求时，不演脱，用吻、切到手和脸、关灯、地上的外衣空镜或时间跳转表达。
 - 他最多到赤裸上身，而且只在她明确要求时；裤子一直穿着。wardrobe 和 key 里不写“赤裸”以外的裸露、内衣、没穿。
@@ -873,7 +876,7 @@ def _n(x):
     except (TypeError, ValueError): return 1
 
 
-WEAR_ASK = re.compile('换(上|成|回|件|一件|身|套|条)|穿(上|回|这|那|件|条|一)|试穿|比基尼|泳衣|泳装')
+WEAR_ASK = re.compile('换(上|成|回|件|一件|身|套|条)|穿(上|回|这|那|件|条|一|裙|个|别|点)|想穿|试穿|比基尼|泳衣|泳装')
 NO_WEAR = re.compile('不(用|要|想)?(换|穿)|别(换|穿)')
 NUDE_SHE = re.compile('赤裸|裸|没穿|光着|内衣|胸罩|文胸|内裤|一丝不挂')
 SWIM = re.compile('比基尼|泳衣|泳装|泳裤')
@@ -1111,7 +1114,7 @@ def _shape(sp, mode):
 
 
 def _call(msgs, timeout):
-    body = {'model': MODEL, 'max_tokens': 3400, 'reasoning': {'effort': 'low'}, 'temperature': 0.7, 'messages': msgs}
+    body = {'model': MODEL, 'max_tokens': 3800, 'reasoning': {'effort': 'low'}, 'temperature': 0.7, 'messages': msgs}
     body['provider'] = {'order': ['Anthropic'], 'allow_fallbacks': True}  # V1.5b 提速：直连 Anthropic 约快一倍（同一份输入 11.6 秒 vs AWS 22 秒）
     req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(),
                     headers={'Authorization': 'Bearer ' + _key(), 'Content-Type': 'application/json',

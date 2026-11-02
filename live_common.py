@@ -391,7 +391,7 @@ def prompts(sp, mode, *a, **kw):
             if k == 1 and not use:
                 i = p.find('第三人称电影镜头')
                 if i > 0 and not f:
-                    if stay: p = x + '图片1就是这一段的场景和上一刻的画面：房间、床、灯、光线、两人的穿着和位置都和图片1一样，这一段不离开这个地方；图片2只看 Rafael 的脸和头发，图片3只看她的脸和头发' + look_text(seg_looks(sp, end, 0), 4) + '；两人的长相和画风以这些图为准，穿着按每个镜头写的。' + p[i:]  # 只用首帧时 4 轮就换脸（头发变棕、变真人画风），所以第 2 段仍带脸的参考图
+                    if stay: p = x + '图片1就是这一段的场景和上一刻的画面：房间、床、灯、光线、两人的穿着和位置都和图片1一样，这一段不离开这个地方；图片2只看 Rafael 的脸和头发，图片3只看她的脸和头发' + '；两人的长相和画风以这些图为准，穿着按每个镜头写的。' + p[i:]  # 只用首帧时 4 轮就换脸（头发变棕、变真人画风），所以第 2 段仍带脸的参考图
                     else: p = x + '图片1是上一刻的画面：两人的长相和此刻的穿着都接着它（背景换成下面写的新地点）；图片2只看 Rafael 的脸和头发；图片3只看她的脸和头发。' + p[i:]
                 if end != start:
                     p = p.replace('他的长相和服装全程不变，以参考的身份母版为准。', '他的长相全程不变，穿着按写到的动作变化。').replace(_SHE_END, '她的长相和发型全程不变，穿着按写到的动作变化。').replace('全程穿在身上；', '开头穿在身上；')
@@ -401,7 +401,7 @@ def prompts(sp, mode, *a, **kw):
             f = True; p = x + '这一段从首帧那一刻接着演：地点、背景、光线、两个人的长相、穿着、姿态、手里的东西都和首帧一样，全程保持，不变回去。' + p[i:]
         if k == 1 and use == 'ref' and i >= 0:
             sel = [c for c in (sp.get('cast') or []) if c in CAST and any(c in b[0] or (len(b) > 3 and b[3] == c) for b in sp['seg2'])]
-            f = False; p = x + '图片1是这一段的新地点和两人此刻的样子：地点、光线、两人的穿着、姿态和道具都照它，每个镜头保持，不变回去；图片2只看 Rafael 的脸和头发，图片3只看她的脸和头发' + ''.join(f'，图片{4 + n}是 {c}' for n, c in enumerate(sel)) + look_text(seg_looks(sp, end, len(sel)), 4 + len(sel)) + '；他们的影棚背景不进画面。' + ('第一个镜头是空镜：画面里完全没有人，也没有车，两人从第二个镜头才出现。' if str(sp['seg2'][0][2]).startswith('空镜') else '') + p[i:]
+            f = False; p = x + '图片1是这一段的新地点和两人此刻的样子：地点、光线、两人的穿着、姿态和道具都照它，每个镜头保持，不变回去；图片2只看 Rafael 的脸和头发，图片3只看她的脸和头发' + ''.join(f'，图片{4 + n}是 {c}' for n, c in enumerate(sel)) + '；他们的影棚背景不进画面。' + ('第一个镜头是空镜：画面里完全没有人，也没有车，两人从第二个镜头才出现。' if str(sp['seg2'][0][2]).startswith('空镜') else '') + p[i:]
         if k == 1 and use == 'ref':  # 图片1已经是新地点，再写旧地点和“上一刻”模型会先拍半秒旧地点再叠化（Magnus 实测第 2 段开头闪车库）
             p = re.sub(r'开头的地点：.*?切到新地点后：', '地点：', p, flags=re.S).replace('新地点的站位：', '站位：')
             p = re.sub(r'这一段从上一刻切过来，上一刻是：[^。]*。换场之前，地点、背景、光线、两个人的位置和朝向与上一刻一致。', '', p).replace(SEAM, '')
@@ -462,14 +462,6 @@ def mix_of(sp):
     return out
 
 
-def look_refs(w):
-    """V2.4：脱了衣服的那个人，给一张这一刻穿着的全身参考图。第 13–18 轮只靠文字，她的条纹针织上衣变成抹胸、白吊带、扎染背心。"""
-    w = w or {}; he, she = str(w.get('he') or ''), str(w.get('she') or ''); out = []
-    if TU.get('look_she_off') and she and is_base(she) and LOOK_OUTER not in she: out.append((TU['look_she_off'], '她此刻穿着的样子'))
-    if TU.get('look_he_off') and re.search('赤裸|光着|裸', he): out.append((TU['look_he_off'], '他此刻的上身纹身、裤子和鞋'))
-    return out
-
-
 def key_people(w, her_url=None):
     """V2.4 关键帧的人物图：穿着图本身带脸，直接替换头像，始终 3 张（实测每多一张图关键帧慢 10 秒以上：3 张 11–25 秒，4 张 22–32 秒）。回归 R4 只给头像，关键帧把开衫画丢了。"""
     w = w or {}; he, she = str(w.get('he') or ''), str(w.get('she') or '')
@@ -478,25 +470,12 @@ def key_people(w, her_url=None):
     return h, s
 
 
-def seg_looks(sp, w, n_extra):
-    """第 2 段参考图里放得下的穿着图：Vivix 最多 5 张（上一刻或关键帧、两张头像、配角、摩托）。"""
-    ride = TU.get('vehicle') and any(RIDE_ON.search(str(b[0])) for b in sp.get('seg2') or [])
-    out = look_refs(w)
-    if sp.get('she_look_url') and not is_base((w or {}).get('she')): out = [(sp['she_look_url'], '她此刻穿着的样子')] + out  # V2.6：同一条裙子每轮款式都在变
-    if TU.get('outfit') and not re.search('赤裸|光着|裸', str((w or {}).get('he') or '')): out = out + [(TU['outfit'], '他此刻的 T 恤和裤子，只有一种颜色')]  # 回归：骑行时 T 恤变成棕灰两色
-    return out[:max(0, 2 - n_extra - (1 if ride else 0))]
-
-
-def look_text(looks, first):
-    return ''.join(f'，图片{first + i}是{d}（只看衣服和纹身，它的影棚背景不进画面）' for i, (_, d) in enumerate(looks))
-
-
 def anchor_prompt(state, issues, w=None, objects='', vehicle=False):
     """V2.2：把上一轮末帧回正成定装图的样子，再交给下一轮。地点、姿态、穿着都不动，把累积的漂移擦掉；只拍到一个人时把另一个也带进来（只露一个人的末帧，下一轮第 1 段会把另一个人的衣服画错：V2.2 第 4 轮她变成黑背心牛仔裤）。"""
     w = w or {}
     return ('Image 1 is a frame from a film. Repaint this moment as one clean frame: the same location, background, lighting, poses, expressions and objects, the same camera distance and crop. Nobody changes pose: whoever sits stays sitting, whoever lies stays lying, a close-up stays a close-up; do not invent a wider view or the lower body. The man is on the left and the woman on the right; only if Image 1 shows just one of them, pull the camera back so the other is there too at the natural distance. '
             f'His clothes right now (Chinese): {w.get("he") or HE_DEFAULT}。 Her clothes right now (Chinese): {w.get("she") or SHE_DEFAULT}。 Exactly these clothes, nothing added back: if his torso is bare there is no shirt, no open shirt and no jacket on him. '
-            'Image 2 is the man\'s face and hair reference (Rafael), Image 3 is the woman\'s face and hair reference. Only correct what has drifted away from them. '
+            'Image 2 is the man (Rafael), Image 3 is the woman: ignore their studio backgrounds and only correct what has drifted away from them. '
             + (f'The state of this moment, keep it exactly (Chinese): {state}。 ' if state else '')
             + 'Keep every object exactly as it is in Image 1 and do not add any object that is not already visible in Image 1, including clothes on the ground. '
             + (f'Also fix (Chinese): {"；".join(issues)}。 ' if issues else '')

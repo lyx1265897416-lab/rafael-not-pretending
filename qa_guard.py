@@ -180,27 +180,39 @@ def grid(mp4, out):
     return n
 
 
-NUDE_CHECK = ('这张图是一段短视频按时间顺序等间隔抽的帧，内容是两个成年人的电影片段。逐格检查有没有人物裸露：女性的胸部、上身或下身没有衣服遮挡（哪怕只有一两格、哪怕是半透明的过渡画面）；任何人的下身裸露。'
-              '男性赤裸上身不算；泳装、吊带、露肩不算；只看到肩膀、手臂和背部不算。只输出 JSON：{"bad": true 或 false, "why": "哪一格、什么问题，没有写空"}')
+HARD_MODEL = 'google/gemini-3-flash-preview'  # 2026-11-02 用 22 段已审片段比过：它 4/4 全中、误报 2/18（其中 1 个确实有重影）；gemini-2.5-flash 3/4、误报 6/18；haiku 2/4
+HARD_CHECK = ('下面是同一段短视频按时间顺序抽出的 {n} 张独立的画面，每张都是一整帧，互相没有拼接。这段视频里只应该有这些人：{people}。有些画面是空镜（没有人）或只拍到一个人，这都是正常的。逐张看，只报你确定的明显错误：\n'
+              '- people：一张画面里，人数多于应有人数；同一个人出现两次（两个长得一样的人）；半透明的重影人；空镜里闪现人。\n'
+              '- motion：人在空中飞、横着飞过画面、身体严重扭曲折叠。\n'
+              '- nude：女性胸部裸露、上身没有穿衣服；任何人下身裸露。男性赤裸上身、泳装不算。\n'
+              '手指细节、手臂姿势、衣服颜色和款式、画风都不报。只输出 JSON：{{"bad": true 或 false, "kinds": [], "frames": [第几张], "why": "简短说明"}}')
 
 
-def nude_check(mp4, timeout=20):
-    """V2.6 开播前的裸露检查（Vicky：严格规避，尤其女生）。每秒 2 帧，比 grid 密：第 4 轮裸露只有 1 秒。结构上已经不拍换衣服过程，这里是最后一道。"""
-    g = Path(str(mp4)).with_suffix('.nude.jpg')
-    subprocess.run(['/Users/vicky/Interactive storyline/.media-runtime/vivix-bin/ffmpeg', '-v', 'error', '-y', '-i', str(mp4), '-vf', 'fps=2,scale=200:-2,tile=8x4', '-frames:v', '1', '-q:v', '4', str(g)], check=True)
-    b64 = base64.b64encode(g.read_bytes()).decode(); t0 = time.time()
-    for model in ('google/gemini-2.5-flash', VLM):  # 快的先看，它不答再换
-        try:
-            body = {'model': model, 'max_tokens': 300, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': NUDE_CHECK}, {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b64}}]}]}
-            req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
-            with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
-            txt = j['choices'][0]['message'].get('content') or ''; i = txt.find('{')
-            if i >= 0:
-                g.unlink(missing_ok=True)
-                return dict(json.JSONDecoder().raw_decode(txt[i:])[0], sec=round(time.time() - t0, 1), model=model)
-        except Exception: pass
-    g.unlink(missing_ok=True)
-    return {'bad': False, 'why': 'check failed', 'err': True, 'sec': round(time.time() - t0, 1)}
+def hard_check(mp4, people, timeout=15):
+    """V2.7 开播前的硬错误检查（Vicky：角色数量错误、动态错误、裸露要严格规避）。独立帧、每秒 1.6 帧：拼成一张图时模型把相邻格子当成多个人，误报超过一半。同发两个请求，约 5–10 秒；都没答换 Sonnet，再没答就放行并记录。"""
+    import tempfile
+    import live_common as L
+    with tempfile.TemporaryDirectory() as d:
+        subprocess.run([L.FFMPEG, '-v', 'error', '-y', '-i', str(mp4), '-vf', 'fps=1.6,scale=384:-2', '-q:v', '5', d + '/%02d.jpg'], check=True)
+        fr = [base64.b64encode(p.read_bytes()).decode() for p in sorted(Path(d).glob('*.jpg'))]
+    t0 = time.time(); content = [{'type': 'text', 'text': HARD_CHECK.format(n=len(fr), people=people)}] + [{'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b}} for b in fr]
+    def ask(model):
+        body = {'model': model, 'max_tokens': 600, 'messages': [{'role': 'user', 'content': content}]}
+        req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
+        with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
+        txt = j['choices'][0]['message'].get('content') or ''
+        return dict(json.JSONDecoder().raw_decode(txt[txt.find('{'):])[0], sec=round(time.time() - t0, 1), model=model)
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    ex = ThreadPoolExecutor(2)  # 同发两个，先回来的用：单个 4–24 秒，抖动大
+    try:
+        for f in as_completed([ex.submit(ask, HARD_MODEL) for _ in range(2)], timeout=timeout):
+            try: return f.result()
+            except Exception: pass
+    except Exception: pass
+    finally: ex.shutdown(wait=False)
+    try: return ask(VLM)
+    except Exception: pass
+    return {'bad': False, 'kinds': [], 'why': 'check failed', 'err': True, 'sec': round(time.time() - t0, 1)}
 
 
 def seg_state(mp4, state, timeout=40):

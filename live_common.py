@@ -432,6 +432,7 @@ def prompts(sp, mode, *a, **kw):
         if k == 0 and HER_STRIP.search(' '.join(str(b[0]) for b in beats)): p += '脱衣服的动作是她的双手做的：她的手抓着衣服往上掀，他只是抬起手臂配合，不是他自己脱。'  # V2.4：第 14 轮他自己脱了
         if not re.search('光脚|赤脚|脱了?鞋|鞋[^，。]{0,4}脱', str(sp.get('intent') or '') + str(sp.get('wardrobe_end') or '') + str(ho)): p += FEET if is_base((w1 or {}).get('she')) else FEET_HE
         if k == 1 and re.search('比基尼|泳', str((w1 or {}).get('she') or '')) or k == 0 and re.search('比基尼|泳', str(start.get('she') or '')): p += '她的镜头是中景或全景，从正面或侧面拍，不从身后拍，动作自然日常。'
+        if k == 0 and sp.get('offscreen_change') and end.get('she'): p += f"画面里她拿着或他递给她的那件衣服，就是她接下来要穿的：{end['she']}，颜色和款式一模一样。"  # V2.7：第 1 段递的是白裙子，穿好后是深蓝裙
         p += CLOTHED  # V2.6：第 4 轮换裙子时她上身裸露。写法只写“穿着”，不写身体部位（否定句写身体部位会触发内容审核）
         if any(RIDE_ON.search(str(b[0])) for b in beats) and TU.get('vehicle') and not f: p = '最后一张参考图是这辆车：款式和颜色照它，它的白底不进画面。' + p
         sg = sp.get('song')

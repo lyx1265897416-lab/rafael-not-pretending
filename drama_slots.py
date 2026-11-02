@@ -3,10 +3,12 @@ tools/realtime-third/render.py 把模板和这里的内容合成本目录的 dir
 HE = 'Rafael'
 OUT = {'director': 'director.py', 'live_common': 'live_common.py', 'qa_guard': 'qa_guard.py', 'relay': 'raf_third_relay.py'}
 SLOTS = {
+    'l.FEET': "'脚入镜时：他穿黑色皮靴，她穿黑色平底鞋，不光脚，不换鞋；他不戴手表，银链不变成金链。'",
+    'l.LOOK_OUTER': "'开衫'",
     'l.VEHICLE_LOOK': '黑色旧摩托车：黑色油箱、棕色皮座、圆形车灯，车身没有文字和标志，',
-    'l.HE_LOCK_EN': 'His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown, single color. His jeans are washed blue straight wide-leg with faded knees, his boots black leather.',
-    'l.HER_LOCK_EN': 'Her top, where visible, is a sleeveless straight-neck fitted ribbed knit in cream with blurred grey-black horizontal stripes: no collar, no buttons, no short sleeves, not a plain white tank. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace.',
-    'd.HER_TOP': "'一字领无袖贴身细罗纹针织上衣（奶油底、灰黑色横条，没有翻领、没有纽扣、没有短袖）'",
+    'l.HE_LOCK_EN': 'His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown, single color. His jeans are washed blue straight wide-leg with faded knees, his boots black leather. One thick SILVER chain, never gold. The tattoo sleeve is only on his right arm; no watch, no rings.',
+    'l.HER_LOCK_EN': 'Her top, where visible, is a sleeveless square-neck fitted ribbed knit in cream with two wide shoulder straps and groups of crisp thin black-grey horizontal stripes: not strapless, not a tube top, not spaghetti straps, not tie-dye, not a plain white tank, no collar, no buttons, no sleeves. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace.',
+    'd.HER_TOP': "'方领无袖贴身细罗纹针织上衣（奶油底，几组清晰的黑灰细横条；两条宽肩带，不是抹胸、不是细吊带、不是扎染；没有领子、没有纽扣、没有袖子）'",
     'd.PACKPath__': "'rafael_pack.json'",
     'd.WRITER_PEr': 'r"""你是女性向互动短剧《⟦HE⟧｜这次，不是演的》实时版的编剧',
     'd.你手里有一份资料包附': '⟦HE⟧ 内容包整理的世界规则',
@@ -145,7 +147,7 @@ SLOTS = {
     'd.ifspgetset': None,
     'l.午夜车库开放式实时版': '"""⟦HE⟧｜这次，不是演的',
     'l.第三视角版20261': '从 output/magnus-third-live-v1（V1.9）复制改写：流程、PE 规则和 Rafael 第三视角一致，角色、世界观和时间换成 ⟦HE⟧ 内容包。',
-    'l.SELENE_URL': "import json as _json\nTU = _json.loads((Path(__file__).resolve().parent / 'masters' / 'urls.json').read_text())\nCAST = {\n    'Evan': ('Evan：二十八岁男人，白皙皮肤，灰绿色眼睛，灰金色短发整齐侧分后梳，干净无胡须，窄长脸，高颧骨，瘦高体型；灰蓝色短袖细针织 polo 衫，深色阔腿长裤。长相和衣着以他的身份母版为准。', TU['evan']),\n    'Maya': ('Maya：二十六岁女人，暖棕色皮肤，深棕色杏眼，黑色及锁骨的自然卷发、侧分，一对小银圈耳环；黑白格纹短款衬衫，黑色罗纹袖口和下摆，牛仔裤。长相和衣着以她的身份母版为准。', TU['maya']),\n    'Cole': ('Cole：三十一岁男人，健壮，方圆脸，晒过的浅麦色皮肤，灰蓝色眼睛，沙棕色短发和修剪整齐的短胡子；深烟草色麂皮短夹克敞开，里面象牙色棉衬衫。长相和衣着以他的身份母版为准。', TU['cole']),\n    'Ryan': ('Ryan：二十二岁男人，瘦削，浅象牙色皮肤，鼻梁有淡雀斑，榛色眼睛，蓬松的铜棕色短发，干净无胡须；敞开的深靛蓝短袖工装衬衫，黑色领边，黑色圆领内搭。长相和衣着以他的身份母版为准。', TU['ryan']),\n}\nHE_LOOK = ('⟦HE⟧：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，浓密凌乱的黑色层次短发（不卷、不长、不整齐，后颈盖到发际，几缕垂在额前）；右侧颈部黑色荆棘纹身，一条粗银链，只有右臂一条满臂纹身（肩到手腕，墨黑带橙棕的齿轮几何图案），左臂干净没有纹身；身材修长不夸张，肤色自然、不晒黑，脸上没有污点和沙粒。'\n       '日常穿着：做旧炭灰色圆领 T 恤（不是纯黑，不是棕色，没有拼色），做旧水洗蓝直筒宽腿牛仔裤（膝盖发白、一处小破洞），黑色厚底皮靴；手指上空无一物。他的长相和服装全程不变，以参考的身份母版为准。')\nHER_FP = '她的手外形全程固定：纤细白皙的女性双手，指甲短而圆、裸色素甲，手指和手腕上空无一物，袖口是奶油色开衫的长袖。'\nHER = ('她：二十多岁的成年女人，白皙皮肤，成熟精致的脸，高颧骨、窄下颌、细直的鼻子，灰蓝色眼睛，柔和的灰褐色眼妆，鼻梁上淡淡的雀斑，豆沙玫瑰色的饱满嘴唇，不显幼态；很长的米金色层次长发（浅棕发根、沙色挑染，中分，不是银灰也不是金黄）、脸旁有碎发；'\n       '奶油色细罗纹长袖开衫（短款到腰，不是粗针毛衣），里面奶油底灰黑横条的一字领无袖细罗纹针织上衣（没有翻领、没有纽扣、没有短袖），奶油白阔腿长裤（腰部不露肤），腰间一条奶油灰黑条纹系带，黑色平底鞋（不是运动鞋、不是凉鞋）；'\n       '指甲短而圆、裸色素甲，手指和手腕上空无一物。她的长相、发型和服装全程不变，严格以她的身份母版（正面头像、全身正面、多角度）为准。她的表情自然克制，情绪在眼神里。')\nWOLF = ''",
+    'l.SELENE_URL': "import json as _json\nTU = _json.loads((Path(__file__).resolve().parent / 'masters' / 'urls.json').read_text())\nCAST = {\n    'Evan': ('Evan：二十八岁男人，白皙皮肤，灰绿色眼睛，灰金色短发整齐侧分后梳，干净无胡须，窄长脸，高颧骨，瘦高体型；灰蓝色短袖细针织 polo 衫，深色阔腿长裤。长相和衣着以他的身份母版为准。', TU['evan']),\n    'Maya': ('Maya：二十六岁女人，暖棕色皮肤，深棕色杏眼，黑色及锁骨的自然卷发、侧分，一对小银圈耳环；黑白格纹短款衬衫，黑色罗纹袖口和下摆，牛仔裤。长相和衣着以她的身份母版为准。', TU['maya']),\n    'Cole': ('Cole：三十一岁男人，健壮，方圆脸，晒过的浅麦色皮肤，灰蓝色眼睛，沙棕色短发和修剪整齐的短胡子；深烟草色麂皮短夹克敞开，里面象牙色棉衬衫。长相和衣着以他的身份母版为准。', TU['cole']),\n    'Ryan': ('Ryan：二十二岁男人，瘦削，浅象牙色皮肤，鼻梁有淡雀斑，榛色眼睛，蓬松的铜棕色短发，干净无胡须；敞开的深靛蓝短袖工装衬衫，黑色领边，黑色圆领内搭。长相和衣着以他的身份母版为准。', TU['ryan']),\n}\nHE_LOOK = ('⟦HE⟧：二十六岁男人，一米八七，肩背宽阔，皮肤光滑干净没有胡茬，瘦长脸、两颊微凹、下颌线干净利落，浓黑平直的粗眉压在深邃的眼睛上，深棕色眼睛，直鼻，饱满的嘴唇，浓密凌乱的黑色层次短发（不卷、不长、不整齐，后颈盖到发际，几缕垂在额前）；右侧颈部黑色荆棘纹身，一条粗银链，只有右臂一条满臂纹身（肩到手腕，墨黑带橙棕的齿轮几何图案），左臂干净没有纹身；身材修长不夸张，肤色自然、不晒黑，脸上没有污点和沙粒。'\n       '日常穿着：做旧炭灰色圆领 T 恤（不是纯黑，不是棕色，没有拼色），做旧水洗蓝直筒宽腿牛仔裤（膝盖发白、一处小破洞），黑色厚底皮靴；手指上空无一物。他的长相和服装全程不变，以参考的身份母版为准。')\nHER_FP = '她的手外形全程固定：纤细白皙的女性双手，指甲短而圆、裸色素甲，手指和手腕上空无一物，袖口是奶油色开衫的长袖。'\nHER = ('她：二十多岁的成年女人，白皙皮肤，成熟精致的脸，高颧骨、窄下颌、细直的鼻子，灰蓝色眼睛，柔和的灰褐色眼妆，鼻梁上淡淡的雀斑，豆沙玫瑰色的饱满嘴唇，不显幼态；很长的米金色层次长发（浅棕发根、沙色挑染，中分，不是银灰也不是金黄）、脸旁有碎发；'\n       '奶油色细罗纹长袖开衫（短款到腰，不是粗针毛衣），里面方领无袖贴身细罗纹针织上衣（奶油底，几组清晰的黑灰细横条；两条宽肩带，不是抹胸、不是细吊带、不是扎染；没有领子、没有纽扣、没有袖子），奶油白阔腿长裤（腰部不露肤），腰间一条奶油灰黑条纹系带，黑色平底鞋（不是运动鞋、不是凉鞋）；'\n       '指甲短而圆、裸色素甲，手指和手腕上空无一物。她的长相、发型和服装全程不变，严格以她的身份母版（正面头像、全身正面、多角度）为准。她的表情自然克制，情绪在眼神里。')\nWOLF = ''",
     'l.ACT表演克制情绪在': "ACT = '表演自然：⟦HE⟧ 放松时带一点懒散的笑意，认真时笑意收住、目光聚焦，说话轻缓，不压嗓、不耳语；她说话轻而清楚；情绪在眼神和嘴角。'",
     'l.STYLE写实三维游': "STYLE = ('画面和角色参考图是同一种渲染和画质：高级半写实 2.5D 三维角色渲染，皮肤细节自然，眼睛和睫毛清晰，发丝分明，织物质感清楚，对比干净；不雾、不柔焦、脸上不发光、不磨皮、不塑料感、不动漫，标准焦段，五官比例自然，画风全程统一；时间和光线按这个地点写的来，肤色保持参考图的颜色，不偏橙不偏黄。'",
     'l.镜头之间一律硬切不用': '',
@@ -170,7 +172,7 @@ SLOTS = {
     'l.HE_DEFAULT': "HE_DEFAULT = '褪色炭灰色圆领 T 恤，浅色水洗蓝牛仔裤'",
     'l.SHE_DEFAUL': "'奶油色长袖开衫，奶油色和黑色条纹针织上衣，奶油白阔腿长裤'",
     'l._HE_REreco': "r'日常穿着",
-    'l._SHE_RErec': "r'奶油色长袖开衫.*?黑色平底鞋",
+    'l._SHE_RErec': "r'奶油色(?:细罗纹)?长袖开衫.*?黑色平底鞋[^；]*",
     'l._SHE_END她的': '多角度',
     'l.ifhep_HE_R': '颈部纹身、银链和小臂纹身不变，手指上空无一物',
     'l.RIDE_MOVE摩': '摩托车正在公路上向画面左方匀速行驶：车轮转动，路面和路边的护栏向画面右方飞快后退',

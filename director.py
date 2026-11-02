@@ -255,7 +255,8 @@ OUTPUT_PE = r"""【输出】只输出一个 JSON 对象，不要解释或 markdo
  "wardrobe": {"he": "这一轮结束时 Rafael 穿着什么，没变写“不变”", "she": "这一轮结束时她穿着什么，没变写“不变”"},
  "intent": "她这一句在现实里是什么样（一句话：谁在哪、谁对谁做什么、观众看到什么）",
  "posture": "这一轮结束时两人的姿态（站着面对面 / 并排坐 / 骑在行驶的摩托上 / 他仰躺在沙滩上、她半撑着俯在他身侧），没变写“不变”",
- "holding": "这一轮结束时谁手里拿着什么、脱下来的东西放在哪；没有写“无”",
+ "holding": "这一轮结束时谁手里拿着什么；没有写“无”（数量和位置写进 items）",
+ "items": [{"name": "东西的名字", "n": 1, "at": "现在在哪：她右手 / 餐桌上的盘子里 / 她身侧的沙上"}]（这一轮结束时这个地点里人物碰过或剧情提过的每样东西，包括脱下来的衣服；没有写空列表）,
  "key": "这一轮穿着或姿态变了、或换了地点时必填：第 2 段第一张画面的样子（景别、地点、光线、两人的位置和姿态、穿着、手）；否则写空字符串",
   "input_type": "direction 或 question 或 vague（见编剧 PE）",
  "ask": "她这一轮明确要的是什么（一句话；没有明确要求写 \"\"）",
@@ -296,6 +297,20 @@ SYSTEM = WRITER_PE + "\n" + DIRECTOR_PE + "\n" + OUTPUT_PE + r"""
 - 没人骑、没人开的车不会自己动，停着的车熄火停稳；东西不会自己移动、变形、消失；人不会悬空、不会瞬移。除非她明确提到魔法或超现实的设定，或这部剧的世界观本来就有，否则一律按现实物理演。
 - 空镜里不写车和人：车要出现时，一定有人骑着或开着，或者是人物走到车旁的双人镜头。
 - 同一地点同一辆车只有一辆。离开一个地点时，手里和地上的东西要交代：带走、穿回或留下，不跟到下一个地点，也不凭空回来。脱掉的鞋去骑车之前要穿回。
+【物品台账（V2.4，硬规则，Vicky：物品数量要对，不凭空出现或消失）】
+- 输入的【此刻手里和身边的东西】是台账。每样东西的数量和位置只能被演出来的动作改变：一张披萨切成 8 块，她拿走 1 块盘里就少 1 块；吃完、放下、递给对方都要写出来。没写的东西就还在原处，不多也不少。
+- 这一轮结束时写 items：name、n（数量）、at（在哪）。同一样东西 name 一字不改。
+- 一样东西第一次出现，先写进 props 说明来源，并在画面里交代它怎么来的（它本来就在场景里、有人端进来、或手伸出画外再收回）。不写“手里突然有”“盘子已经在桌上”。
+- 换了地点，只有手里拿着带走的东西才跟着走，其余都留在原地；【留在别处的东西】不能出现在这里，除非回到那个地点。
+- 分镜和 key 里不写和这一拍无关的东西，比如车：这个地点的戏里没用到摩托，就不提摩托。
+【穿脱（V2.4，硬规则，Vicky：服装穿脱要正确）】
+- wardrobe 只写身上穿着什么，不写脱下来的衣服在哪（那个写进 items）。脱下来就完全离开身体，不挂在手臂、手肘或腰上。
+- 谁脱就写谁的手：她脱他的衣服，写“她的双手抓住他 T 恤下摆往上掀过头顶，他抬起手臂配合”。
+- 离开脱衣服的地点时要先穿回去（代码也会兜底）：seg1 写一拍“两人起身，捡起脱下的衣服穿回身上”，wardrobe 写回原来的穿着，key 和 seg2 不再写赤裸上身。只有她明确说不穿，才继续不穿。
+【动作要演对（V2.4，硬规则，Vicky：动态响应要正确）】
+- 她这一句里的身体动作，当轮按字面演到：跨坐就是她面对面坐到他腿上（两人衣服都穿着，镜头停在上半身），翻身压住就是她翻到他上方、双手撑在他肩旁俯身；拉他起身就是真的站起来。不换成更轻的动作，也不用接吻代替。
+- 一拍只写一个看得见的动作。seg1 5 秒只演一个动作，并且这一个动作要演完。
+- 换地点的那一轮，原地点的戏都放进 seg1，seg2 第一拍就是切到新地点的空镜。
 【配乐和唱歌（V2.3）】
 - 输入里有【可用配乐和歌】时才用。bgm 写配乐的 id，不需要写 "none"。普通对话、问答一般不用；换到新地方、骑行、日落、吻、情绪转折这种需要渲染氛围的时候用。同一段情绪连续几轮用同一首，不要每轮换。
 - 她要谁唱歌、或她自己要唱，必须写 song（id 和 beat），id 从歌单选：谁唱选谁的，选合这一刻的。歌词是固定的，她点名要的歌也用歌单里最接近的。beat 是 seg2 里开始唱的那一拍（从 0 数）。唱的那几拍动作写“他在唱歌，看着她”，台词留空，歌声后期加；这一轮 5+15。
@@ -313,7 +328,7 @@ SYSTEM = WRITER_PE + "\n" + DIRECTOR_PE + "\n" + OUTPUT_PE + r"""
 - intimacy 写这一轮到了哪一级：0 没有；1 靠近、触碰；2 吻；3 吻着移动，外衣脱落（门口到室内、站立到床沿、跨坐）；4 床上：枕边相拥、持续吻、吻肩颈、手指相扣、被子盖到胸口；5 省略和余韵：手伸向床头灯、关灯或拉窗帘，硬切到清晨同一张床，晨光、被子盖到肩、枕边说话。
 - 她在往下走（要脱、要上床、要“更坏”）时，这一轮至少比上一轮高一级；她说“先睡了再说”“上床”，意思是和他上床亲热，不是闭眼睡觉：地点到床上，直接到 4 或 5。不要停在亲吻反复演，也不要往回退。
 - 高潮用这些方式演，不重复同一个模板：①移动拥吻：吻着从门口退到床沿，到床边坐稳后立刻继续（至少一拍看清移动）；②主动权接力：她先吻，他回应，再由他发起下一次；③枕边持续吻：开场已经在吻，切镜只换观察范围，手臂从轻放到相拥，分开后一句话；④手的动作：手指滑进头发、抓紧被单、十指相扣（有动作变化）；⑤省略到清晨：关灯或地上的衣服空镜作为过渡，下一拍是清晨。最后一拍可以停在动作还在进行时，不必都以“额头相抵 + 他说一句”结束。
-- 画面的边界（手册同样如此）：只拍脸、肩颈、手臂、背、他的上身和被子；她的胸口以下、两人的下身都盖在被子里或在画面外；不写性行为动作，不写跪在他两侧、跨坐后往下压这类姿势细节（实测这种写法被 Vivix 内容审核拦下；两人躺下时写“她半撑着身子俯在他身侧”），用拥吻、切镜和省略表达。昨晚和之前的亲密不算这一次的许可：只有她这一轮在往前走才往前走。
+- 画面的边界（手册同样如此）：只拍脸、肩颈、手臂、背、他的上身和被子；她的胸口以下、两人的下身都盖在被子里或在画面外；不写性行为动作，不写跪在他两侧、跨坐后往下压这类姿势细节（实测这种写法被 Vivix 内容审核拦下；她没有说要在上面时，两人躺下写“她半撑着身子俯在他身侧”；她说跨坐、翻身压住时，按【动作要演对】的写法，衣服穿着，镜头停在上半身），用拥吻、切镜和省略表达。昨晚和之前的亲密不算这一次的许可：只有她这一轮在往前走才往前走。
 - 亲密进行中不打断：不写敲门、手机震动、来电、“透口气”、去阳台、去厨房，除非她自己说；不换地点，除非她说要去。钩子写两人之间的下一步，选项也都是两人之间更进一步或换一种亲近，不再追问“答案”。
 【台词（V1.8）】
 - 台词是角色此刻当面说出口的话，用“我”和“你”。不描述自己正在做的动作（不写 I'm sitting on you、Yes. I want to touch your abs），不复述她打的字。她打的是动作时，把动作演出来，台词写她这时会对他说的短句（Hold still. / Look at me.），或者不说话。
@@ -333,7 +348,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
     n = len(history) + 1
     pace = f"当前地点：{place or 'Rafael 的卧室'}，在这里已经演了 {place_rounds} 轮。当前地点的 set：{set_now or OPEN_SET}（地点不变时 set 原样照抄）。"
     level = int((history[-1].get('intimacy') or 0) if history else 0)
-    cont = cont or {}
+    cont = dict(cont or {}, place=place)
     intimate = level >= 2  # V1.8：亲密进行中不换场、不打断。V2.0：穿着变了不等于在亲密（Rafael 第 5–9 轮她穿着外套也不让换场）
     must_scene = place_rounds >= 3 and not intimate
     pace += '\n【此刻两人的穿着】Rafael：' + (wardrobe or {}).get('he', L.HE_DEFAULT) + '；她：' + (wardrobe or {}).get('she', L.SHE_DEFAULT) + '。'
@@ -341,8 +356,14 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         pace += '\n【可用配乐和歌】配乐：' + '；'.join(f"{k}（{v.get('desc')}）" for k, v in (L.AUDIO_BANK.get('bgm') or {}).items()) + '。歌：' + '；'.join(f"{k}（{'她' if v.get('who') == '她' else '他'}唱，{v.get('desc')}）" for k, v in (L.AUDIO_BANK.get('songs') or {}).items()) + '。'
     if cont.get('posture'): pace += '\n【此刻的姿态】' + cont['posture'] + '。没有演出来的动作，就一直是这个姿态。'
     if cont.get('holding'): pace += '\n【此刻手里和身边的东西】' + cont['holding'] + '。'
+    lf = {k: v for k, v in (cont.get('left') or {}).items() if k != place and v}
+    if lf: pace += '\n【留在别处的东西】' + '；'.join(f"{k}：" + '、'.join(x['name'] for x in v) for k, v in lf.items()) + '。'
     if cont.get('looks'): pace += '\n【已经出现过的东西，外观照抄】' + '；'.join(f'{k}：{v}' for k, v in cont['looks'].items()) + '。'
     if level: pace += f'\n【亲密进度】上一轮到了第 {level} 级。她这一轮如果在往下走，至少到第 {min(5, level + 1)} 级，不重复上一轮的演法；她要停或要聊就听她的。这时候他不再追问她的来历和答案。'
+    for ask_, _, how_ in POSE_ASK:  # V2.4 提速：要求提前写明，第一遍就写对（回归里 4/8 轮打回重写，每次多 15 秒）
+        if ask_.search(text or ''): pace += f'\n【这一句的动作】{how_}。posture 和 key 都这样写，动作放进 seg1 一镜到底演完，seg2 从第一拍起就是这个姿态。'
+    if re.search('脱|穿上|穿回|换上', text or ''): pace += '\n【这一句的穿脱】只在 seg1 的一拍里演完（她做的就写她的手），seg2 不再出现脱、穿、滑落这些字；wardrobe 写结束时的穿着，key 写好。'
+    if re.search('去|走|回', text or '') and not RIDE_ASK.search(text or '') and _pose(cont.get('posture') or '') != '骑': pace += '\n【怎么去】她没说骑车：不拍路上，空镜之后直接到目的地，到了就站着或坐着，看她要看的东西。'
     known = {h['place']: h['set'] for h in history if h.get('place') and h.get('set')}
     if known: pace += '\n【去过的地点】回到这些地方时 location 和 set 照抄，是同一个房间：' + '；'.join(f'{k}：{v}' for k, v in known.items())
     if must_scene: pace += f'【场景时钟】这里已经演了 {place_rounds} 轮，这一轮必须换场（除非她这一句明确要求留在这里）：用动作切到新地点；她提过想去的地方优先，否则按资料包的地点顺序，由他的决定或外部事件推动。'
@@ -395,7 +416,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         if attempt == 0 and intimate and sp.get('scene_changed') and not re.search('去|走|回|出门|离开|换|到|阳台|车|楼下|外面|浴室|厨房|客厅|卧室|床|家', text or ''):  # V1.8：亲密进行中自己换了场（第 8、12 轮跑去阳台），这条值得多等一次
             first_bad = ['亲密进行中不换场']; msgs = msgs + [{'role': 'assistant', 'content': txt}, {'role': 'user', 'content': '她没有说要换地方：亲密进行中不换场、不打断。scene_changed 改成 false，就在当前地点继续往下演，其余按原来的规则，重新输出完整 JSON。'}]
             continue
-        bad = lint(sp, m, dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or ''])))
+        bad = lint(sp, m, dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or ''))
         if attempt == 0: first_bad = bad
         hard = [x for x in bad if x.startswith('【必改】')]
         if attempt == 0 and hard:  # V2.0：意图和状态连续错了比多等 10 秒更伤，这两类打回一次
@@ -408,9 +429,10 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         for k, v in known.items():
             room = lambda t: (re.search('卧室|客厅|厨房|阳台|浴室|书房|车|酒吧|车库|走廊|大堂|露台|屋顶', t) or [''])[0]
             if _sim(k, str(sp.get('location') or '')) >= 0.6 and room(k) == room(str(sp.get('location') or '')): sp['location'] = k; sp['set'] = v; break  # 要是同一种房间（“公寓卧室”和“公寓客厅”相似度也有 0.67）
-    ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp)
-    settle_wardrobe(sp, wardrobe); settle_state(sp, cont, wardrobe); clean_zh(sp)
-    ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']))
+    settle_ride(sp, cont, set_now); settle_walk(sp, set_now)
+    ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp); empty_first(sp, set_now)
+    settle_wardrobe(sp, wardrobe, text, set_now, cont.get('posture') or ''); settle_state(sp, cont, wardrobe, text); clean_zh(sp)
+    ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or '')
     sp['lint_left'] = lint(sp, m, ctx)  # V1.5：修完还剩的问题只记录，不再为选项单独调一次导演层
     sp['lint_first'] = first_bad
     sp['director_attempts'] = attempt + 1
@@ -458,7 +480,7 @@ def prop_issues(sp, ctx=None):
             bad.append(f'分镜里出现了道具“{w}”，但 props 没写它从哪来：写进 props（scene=地点里本来就有并写进 set；offscreen=手伸出画外再收回、或人走出画面再走回来带进来；carried=之前就带着）')
     for x in props:
         if x.get('source') == 'offscreen' and not (re.search(r'画外|出画', text) and re.search(r'收回|回到画内|入画|走回|再走进|走进画面|回到画面', text)):
-            bad.append(f'道具“{x.get("name")}”从画外拿进来：分镜要有两拍——先把手伸出画外（或人走出画面），再收回（或走回画面）时手里拿着它')
+            bad.append(f'【必改】道具“{x.get("name")}”从画外拿进来：分镜要有两拍——先把手伸出画外（或人走出画面），再收回（或走回画面）时手里拿着它')
         if x.get('source') == 'scene' and x.get('name') and str(x['name'])[:2] not in scene_text:
             bad.append(f'道具“{x.get("name")}”标的是地点里本来就有：set 里要写到它（放在哪）')
     return bad
@@ -744,7 +766,7 @@ def route_mode(sp, mode, text=''):
     return '5+15'
 
 
-WEAR_ACT = re.compile('脱|解开|解下|褪|滑下|滑落|拨开|敞开|掀开|扯开|推开|穿上|穿回|穿好|套上|拿起外套|披上|披到|披着|系上|扣上|扣好|换上|还给')
+WEAR_ACT = re.compile('掀|丢落|丢在|扔|甩|扯下|捡起|脱|解开|解下|褪|滑下|滑落|拨开|敞开|掀开|扯开|推开|穿上|穿回|穿好|套上|拿起外套|披上|披到|披着|系上|扣上|扣好|换上|还给')
 RIDE_ASK = re.compile('兜风|后座|骑车|骑摩托|骑你的|骑我的|载我|骑上')
 DRIVE_ASK = re.compile('开车|坐车|坐你的车|上车')  # 坐车走 side，不算骑摩托
 RIDE_ACT = re.compile('行驶|骑行|疾驰|飞驰|驶过|驶向|驶在')
@@ -786,9 +808,110 @@ def state_issues(sp, ctx):
     moved_at = next((i for i, b in enumerate(seg2) if '切到' in str(b[0])), -1) if sp.get('scene_changed') else -1  # V2.2：换场前收住原地点的动作（他站起身）不算，不为它打回（17 轮里多花 3 次、每次 15 秒）
     if any(re.search('跨上|坐上|上车|上了车|下车|下了车|落座|坐下|站起|起身|躺下', str(b[0])) for b in seg2[moved_at + 1:]):
         bad.append('【必改】上车下车、坐下站起、躺下都放进 seg1 或直接省掉，seg2 从第一拍起就已经是变化之后的姿态（两段同时生成，放在 seg2 会反复横跳）')
+    pose_txt = str(sp.get('posture') or '') + str(sp.get('key') or '')
+    for ask, ok, how in POSE_ASK:
+        if ask.search(t) and not ok.search(pose_txt):
+            bad.append(f'【必改】她要的身体动作要按字面演到：{how}。posture 和 key 都写成这样，动作放进 seg1 一镜到底演完')
+    prev_items = (ctx or {}).get('items') or []; now_items = [x for x in sp.get('items') or [] if isinstance(x, dict) and x.get('name')]
+    known_names = ' '.join(str(x.get('name')) for x in prev_items) + ' ' + ' '.join(str(x.get('name')) for x in sp.get('props') or [] if isinstance(x, dict)) + str(sp.get('set') or '') + str((ctx or {}).get('set_now') or '') + str((ctx or {}).get('holding') or '') + ' '.join((ctx or {}).get('looks') or [])
+    for x in now_items:
+        nm = str(x['name'])
+        if not any(nm[i:i + 2] in known_names for i in range(len(nm) - 1)) and not re.search('衣|衫|恤|裤|鞋', nm): bad.append(f'【必改】“{nm}”是新出现的东西：写进 props 说明来源，并在分镜里交代它怎么来的')
+        was = next((y for y in prev_items if _same(y.get('name'), nm)), None)
+        if was and _n(x) > _n(was) and not any(_same(p.get('name'), nm) and p.get('source') in ('offscreen', 'scene') for p in sp.get('props') or [] if isinstance(p, dict)): bad.append(f'【必改】“{nm}”从 {_n(was)} 变成 {_n(x)}，多出来的要在分镜里交代从哪来（props 写来源）')
+    if not sp.get('scene_changed'):
+        for y in prev_items:
+            nm = str(y.get('name') or '')
+            if any(_same(x['name'], nm) for x in now_items): continue
+            if not re.search(GONE, ' '.join(str(b[0]) for k in ('seg1', 'seg2') for b in sp.get(k) or [])): sp.setdefault('items_kept', []).append(nm)
+    text_all = ' '.join(str(b[0]) for b in seg2[moved_at + 1:])
+    for pl, v in ((ctx or {}).get('left') or {}).items():
+        if pl == sp.get('location'): continue
+        for y in v:
+            nm = str(y.get('name') or '')
+            if nm and (nm in text_all or (len(nm) > 2 and nm[-3:] in text_all)) and not any(_same(x['name'], nm) for x in now_items): bad.append(f'【必改】“{nm}”留在{pl}，这里没有它：不要写，或先演回去拿')
+    if any(RIDE_ACT.search(str(b[0])) for b in seg2) and _pose(sp.get('posture') or (ctx or {}).get('posture') or '') != '骑':
+        bad.append('【必改】seg2 在骑车或开车，就以骑行收尾，posture 写骑在行驶的摩托上；到了目的地下车放到下一轮（两段同时生成，第 2 段中途换姿态会乱）' if RIDE_ASK.search(t) else '【必改】她没说要骑车：seg2 不写路上和骑行，空镜之后直接到目的地（回归：她说去看日落，被写成一路骑车，没到观景处）')
+    if sp.get('scene_changed') and moved_at > 0:
+        bad.append('【必改】换地点的这一轮，原地点的戏都放进 seg1，seg2 第一拍就切到新地点（空镜）：第 2 段没有原地点的画面，写了也演不对')
     if changed and any(WEAR_NOW.search(str(b[0])) for b in seg2):
         bad.append('【必改】穿脱衣服放进 seg1 的一拍演完，seg2 从第一拍起就是变化之后的样子，不再写脱、穿的动作（两段同时生成，放在 seg2 会反复横跳），并写好 key')
     return bad
+
+
+def _same(a, b):
+    a, b = str(a or ''), str(b or '')
+    return bool(a and b and (a in b or b in a or a[-2:] == b[-2:]))
+
+
+def _n(x):
+    try: return int(x.get('n') or 1)
+    except (TypeError, ValueError): return 1
+
+
+GONE = '吃完|吃光|喝完|收走|收起|扔|丢|递走|带走|拿走|放回|塞进|装进'
+CARRY = re.compile('手|身上|肩上|怀里|背着|拎着|带着')
+CLOTH = re.compile('衣|衫|恤|裤|外套|鞋|袜')
+POSE_ASK = [(re.compile('跨坐|坐到他(腿|身)上|坐在他(腿|身)上|骑在他身上'), re.compile('腿上|跨坐'), '她面对面坐到他腿上，两人衣服都穿着，镜头停在上半身'),
+            (re.compile('翻身|压在|压住|压到|把他压'), re.compile('她在上|上方|俯在他身上|压在他身上'), '他仰躺，她翻到他上方，双手撑在他肩旁俯身')]
+
+
+def settle_ride(sp, cont, set_now):
+    """V2.4（回归 R10：摩托从观景台背景里叠化出来）：这个地点的画面里本来没有车，就不拍上车，第 1 段两人走向路边，第 2 段空镜之后已经在路上。"""
+    if sum(1 for b in sp.get('seg2') or [] if RIDE_ACT.search(str(b[0]))) < 2: return
+    if VEHICLE.search(str(set_now or '') + str(cont.get('holding') or '') + str(cont.get('posture') or '')): return
+    for b in sp.get('seg1') or []:
+        if VEHICLE.search(str(b[0])): b[0] = '他牵起她的手，两人一起朝路边走去'
+    sp['scene_changed'] = True
+    if (sp.get('set') or '').rstrip('。') == str(set_now or '').rstrip('。') or _sim((sp.get('set') or '')[:len(str(set_now or ''))], str(set_now or '')) >= 0.8: sp['set'] = str(set_now or '').rstrip('。') + '；摩托车行驶在路上'
+    sp['key'] = f"双人中景，侧面跟拍，{sp.get('location') or '路上'}，摩托车行驶中，他在画面左侧握车把，她坐后座在画面右侧双臂环着他的腰"
+    sp['ride_cut'] = True
+
+
+def settle_walk(sp, set_now):
+    """V2.4（第 9 轮旧木船从海滩上浮现）：第 2 段切了空镜就是换了地方，哪怕同一片沙滩。走首尾帧到关键帧会把新东西叠化出来。"""
+    cut = next((b for b in sp.get('seg2') or [] if '切到' in str(b[0]) and str(b[2]).startswith('空镜')), None)
+    if not cut or not set_now: return
+    if not sp.get('scene_changed') or (sp.get('set') or '').rstrip('。') == set_now.rstrip('。'):
+        sp['scene_changed'] = True
+        if (sp.get('set') or '').rstrip('。') == set_now.rstrip('。'): sp['set'] = set_now.rstrip('。') + '；' + re.sub(r'^切到[^：:]{0,30}[：:]', '', str(cut[0]))[:50].split('，画面里')[0]
+
+
+def empty_first(sp, set_now):
+    """V2.4（第 1 轮第 2 段的卧室换了墙和床）：第 2 段没有原地点的画面。打回之后还有原地点的拍子：没台词的删掉，有台词的放到空镜之后。"""
+    s2 = sp.get('seg2') or []; idx = next((i for i, b in enumerate(s2) if str(b[2]).startswith('空镜')), None)
+    if not sp.get('scene_changed') or not idx: return
+    z = (sp.get('zh') or {}).get('seg2') if isinstance(sp.get('zh'), dict) else None
+    z = z if isinstance(z, list) and len(z) == len(s2) else None
+    order = [idx] + [i for i in range(idx) if s2[i][1]] + list(range(idx + 1, len(s2)))
+    sp['seg2'] = [s2[i] for i in order]
+    if z is not None: sp['zh']['seg2'] = [z[i] for i in order]
+    sp['empty_first'] = idx
+
+
+def settle_items(sp, cont, text):
+    """V2.4 物品台账：每轮记下每样东西的数量和位置。这一轮没提的东西还在原处；换地点只有手里的跟着走，其余记到 left，回来时再出现。"""
+    prev = [x for x in (cont.get('items') or []) if isinstance(x, dict) and x.get('name')]
+    left = {k: list(v) for k, v in (cont.get('left') or {}).items()}
+    new = []
+    for x in sp.get('items') or []:
+        if isinstance(x, dict) and x.get('name'): new.append({'name': str(x['name']), 'n': _n(x), 'at': str(x.get('at') or '')})
+    beats = ' '.join(str(b[0]) for k in ('seg1', 'seg2') for b in sp.get(k) or [])
+    if sp.get('redressed'): new = [x for x in new if not CLOTH.search(x['name'])]; prev = [x for x in prev if not CLOTH.search(x['name'])]
+    if sp.get('scene_changed'):
+        here0 = str(cont.get('place') or '')
+        stay = [x for x in prev if not (any(_same(x['name'], y['name']) for y in new) and CARRY.search(next(y['at'] for y in new if _same(x['name'], y['name']))))]
+        new = [y for y in new if not any(_same(y['name'], x['name']) for x in stay)]
+        if here0 and stay: left[here0] = stay
+        for x in left.pop(str(sp.get('location') or ''), []):
+            if not any(_same(x['name'], y['name']) for y in new): new.append(x)
+    else:
+        for x in prev:
+            if any(_same(x['name'], y['name']) for y in new): continue
+            if not re.search(f"{re.escape(x['name'][-2:])}[^，。]{{0,8}}({GONE})|({GONE})[^，。]{{0,8}}{re.escape(x['name'][-2:])}", beats): new.append(x); sp.setdefault('items_kept', []).append(x['name'])
+    sp['items_end'] = new; sp['left_end'] = left
+    if new or prev: sp['holding_end'] = '；'.join(f"{x['name']} × {x['n']}（{x['at'] or '原处'}）" for x in new)
+    sp['holding_start'] = '；'.join(f"{x['name']} × {x['n']}（{x['at'] or '原处'}）" for x in prev) or sp.get('holding_start') or ''
 
 
 def _pose(t):
@@ -796,37 +919,73 @@ def _pose(t):
     return next((k for k, r in (('躺', '躺|俯在|卧'), ('骑', '骑|摩托|后座'), ('坐', '坐|靠在床头|后排|行驶的车'), ('站', '站|面对面')) if re.search(r, t)), t)
 
 
-def settle_state(sp, cont, wardrobe):
+def settle_state(sp, cont, wardrobe, text=''):
     """V2.0：记下这一轮开始和结束时的姿态、手里的东西、东西的外观；穿着或姿态变了要有 key（第 2 段第一张画面）。"""
     cont = cont or {}
     p0 = str(cont.get('posture') or ''); p = str(sp.get('posture') or '').strip().rstrip('。')
     p1 = p0 if (not p or p.startswith('不变')) else p
-    sp['posture_start'] = p0; sp['posture_end'] = p1; sp['posture_changed'] = bool(p0 and p1 and _pose(p0) != _pose(p1))  # 只算大姿态变了（站、坐、躺、骑），同一种姿态换个说法不算
+    sp['posture_start'] = p0; sp['posture_end'] = p1; sp['posture_changed'] = bool(p0 and p1 and _pose(p0) != _pose(p1)) or any(a.search(text or '') for a, _, _ in POSE_ASK)  # 只算大姿态变了（站、坐、躺、骑），同一种姿态换个说法不算；V2.4：翻身、跨坐也算（第 16 轮两人都是躺，没画关键帧，翻身没演）
     h = str(sp.get('holding') or '').strip().rstrip('。')
     sp['holding_start'] = str(cont.get('holding') or ''); sp['holding_end'] = '' if h in ('', '无') else h
     looks = dict(cont.get('looks') or {})
     for x in sp.get('props') or []:
         if isinstance(x, dict) and x.get('name') and x.get('look') and x['name'] not in looks: looks[str(x['name'])] = str(x['look'])
     sp['looks'] = looks
+    settle_items(sp, cont, text)
     if (sp.get('scene_changed') or sp['posture_changed'] or (sp.get('wardrobe_end') != sp.get('wardrobe_start'))) and not str(sp.get('key') or '').strip():
         first = next((b for b in sp.get('seg2') or [] if not str(b[2]).startswith(('空镜', '插入', '特写')) ), None)  # 导演层漏写时按第 2 段第一个人物镜头补
         if first: sp['key'] = f'{first[2]}：{first[0]}'; sp['key_auto'] = True
 TIME_SKIP = re.compile('第二天|次日|关灯|熄灯')
 
 
-HER_TOP = '一字领无袖贴身细罗纹针织上衣（奶油底、灰黑色横条，没有翻领、没有纽扣、没有短袖）'
+HER_TOP = '方领无袖贴身细罗纹针织上衣（奶油底，几组清晰的黑灰细横条；两条宽肩带，不是抹胸、不是细吊带、不是扎染；没有领子、没有纽扣、没有袖子）'
 
 
-def settle_wardrobe(sp, prev):
+OFF_CLAUSE = re.compile(r'[（(][^）)]*(脱|落|丢|放在|留在)[^）)]*[）)]|[，,；;][^，,；;]*(已脱|脱下|脱掉|落在|丢在|留在|放在)[^，,；;]*')
+KEEP_OFF = re.compile('光着|不穿|别穿|不用穿|就这样去|脱')
+BARE = re.compile(r'(赤裸|光着|裸着)上身[，,、]?')
+
+
+def clean_wear(v):
+    """V2.4：穿着只写身上有什么。第 13 轮写了“开衫已脱，落在她身侧的沙上”，这句跟到了观景台和公路上，每轮路边都冒出开衫和牛仔裤。"""
+    return OFF_CLAUSE.sub('', str(v or '')).strip('，,；; ')
+
+
+def redress(sp, start, text, set_now, posture=''):
+    """V2.4（第 17–22 轮他光着上身去看日落、骑车、吃夜宵）：离开脱衣服的地点要先穿回去，除非她说不穿。"""
+    if not start or not sp.get('scene_changed') or KEEP_OFF.search(text or '') or _pose(posture) == '骑': return False
+    if (sp.get('set') or '').rstrip('。') == (set_now or '').rstrip('。'): return False
+    s1 = sp.get('seg1') or []; z = (sp.get('zh') or {}).get('seg1') if isinstance(sp.get('zh'), dict) else None
+    off = '、'.join(x for x in (('他的 T 恤' if re.search('赤裸|光着|裸', str(start.get('he') or '')) else ''), (f'她的{L.LOOK_OUTER}' if start.get('she') and L.LOOK_OUTER not in str(start.get('she')) else '')) if x) or '脱下的衣服'
+    has = next((b for b in s1 if re.search('穿回|穿上|套上|穿好', str(b[0]))), None)
+    if has:  # 导演层已经写了穿回去：不再多加一拍（回归 R7 两拍都在穿）
+        has[0] = str(has[0]).rstrip('。，') + '，长裤和鞋一直穿着'
+        for k in ('key', 'hold'): sp[k] = BARE.sub('', str(sp.get(k) or ''))
+        for b in sp.get('seg2') or []: b[0] = BARE.sub('', str(b[0]))
+        sp['hold'] = sp['hold'].rstrip('。') + '，两人的衣服都已穿回身上'; sp['redressed'] = True
+        return True
+    keep = next((i for i, b in enumerate(s1) if b[1]), 0); beat = [f'两人起身，捡起地上的{off}穿回身上，长裤和鞋一直穿着', '', '双人中景，固定', '']  # 回归 R9：只写“衣服”，牛仔裤和阔腿裤变成了短裤
+    first = bool(sp.get('ride_cut'))  # 要走向路边：先穿衣服再走
+    sp['seg1'] = ([beat] if first else []) + ([s1[keep]] if s1 else []) + ([] if first else [beat])
+    if isinstance(z, list): sp['zh']['seg1'] = ([''] if first else []) + [z[keep] if keep < len(z) else ''] + ([] if first else [''])
+    for k in ('key', 'hold'): sp[k] = BARE.sub('', str(sp.get(k) or ''))
+    for b in sp.get('seg2') or []: b[0] = BARE.sub('', str(b[0]))
+    sp['hold'] = sp['hold'].rstrip('。') + '，两人的衣服都已穿回身上'
+    sp['redressed'] = True
+    return True
+
+
+def settle_wardrobe(sp, prev, text='', set_now=None, posture=''):
     """V1.8：记下这一轮开始和结束时的穿着。穿着变了但分镜里没有演（也没有时间跳跃），就退回原来的，不让衣服凭空出现或消失。"""
-    start = dict(prev or {}); end = dict(start); w = sp.get('wardrobe') if isinstance(sp.get('wardrobe'), dict) else {}
+    start = {k: clean_wear(v) for k, v in (prev or {}).items()}; end = dict(start); w = sp.get('wardrobe') if isinstance(sp.get('wardrobe'), dict) else {}
     for k in ('he', 'she'):
         v = str(w.get(k) or '').strip().rstrip('。')
-        if v and v != '不变' and '不变' not in v[:4]: end[k] = v
+        if v and v != '不变' and '不变' not in v[:4]: end[k] = clean_wear(v)
     text = ' '.join(str(b[0]) for k in ('seg1', 'seg2') for b in sp.get(k) or [])
     if end.get('she') == start.get('she') and re.search('开衫[^，。；]{0,10}(滑落|脱|褪|滑下|落)|(脱|褪)[^，。；]{0,6}开衫', text): end['she'] = '奶油色和黑色条纹针织上衣，奶油白阔腿长裤，开衫已经脱下'  # 导演层写了大衣滑落却没记（S035613ebe 第 3 轮）
     if end != start and not WEAR_ACT.search(text) and not TIME_SKIP.search(text): sp['wardrobe_reverted'] = end; end = dict(start)
     if end.get('she'): end['she'] = end['she'].replace('奶油色和黑色条纹针织上衣', HER_TOP) if HER_TOP else end['she']  # V2.2：写死款式（只写“条纹针织上衣”，关键帧画成带领短袖 POLO，之后一路带下去）
+    if redress(sp, start, text, set_now, posture): end = {}
     sp['wardrobe_start'] = start; sp['wardrobe_end'] = end; sp['wardrobe_changed'] = bool(start or end)
 
 
@@ -855,7 +1014,7 @@ def _shape(sp, mode):
         if sp[k] and not str(sp[k][-1][2]).startswith('双人') and not sp.get('wolf_end'):  # 第三视角：每段最后一拍两人同框，下一段/下一轮从这一刻接（V1.1 起不限双人近景）
             last = str(sp[k][-1][2])
             sp[k][-1][2] = ('双人近景' if last.startswith(('单人近景', '近景')) else '双人中近景') + '，固定'
-        if k == 'seg2' and sp[k] and not sp.get('kiss') and int(sp.get('intimacy') or 0) < 2 and str(sp[k][-1][2]).startswith(('双人近景', '双人中近景')): sp[k][-1][2] = '双人中景，固定'  # V2.3：末帧只拍到胸口，下一轮第 1 段要自己猜下半身（牛仔裤变成黑裤、她变成牛仔短裤），收尾看得到全身穿着
+        if k == 'seg2' and sp[k] and str(sp[k][-1][2]).startswith(('双人近景', '双人中近景', '近景')): sp[k][-1][2] = '双人中景，固定'  # V2.4：吻戏也一样（回归：末帧是贴脸近景时，回正把坐着改成站着、把开衫画丢）  # V2.3：末帧只拍到胸口，下一轮第 1 段要自己猜下半身（牛仔裤变成黑裤、她变成牛仔短裤），收尾看得到全身穿着
         for b in sp[k]:
             if str(b[2]).startswith('过肩'): b[2] = '双人近景，' + (str(b[2]).split('，', 1)[1] if '，' in str(b[2]) else '固定')  # 第三视角 v1：过肩镜头会换边，一律改成双人近景
         if sp[k] and str(sp[k][-1][2]).startswith('双人'): sp[k][-1][2] = str(sp[k][-1][2]).split('，')[0] + '，固定'  # 第三视角 v1 第 1 轮：最后一拍缓推，把她推出了画面右边；收尾机位固定

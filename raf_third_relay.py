@@ -170,12 +170,13 @@ def prepare_frame(s, rid, seg2_url):
                 U.urlretrieve(fixed, FR / f'{rid}_last_scene.jpg'); url = fixed; qa['scene_fixed'] = fixed
                 jpg.write_bytes((FR / f'{rid}_last_scene.jpg').read_bytes())
             except Exception as e: qa['scene_fix_err'] = str(e)[:200]; log('SCENEFIXFAIL', rid, e)
+        s['frame_serious'] = bool(kinds(qa, 'people'))
         if s.get('frame_pending') == rid and not scene_bad: s['frame_raw'] = url  # V2.2：不再因为质检挡下一轮，赶不上修好的图就用原图
         issues = [i['text'] for i in qa.get('issues', []) if isinstance(i, dict) and i.get('level') == 'high']
         try:  # V2.2 每轮回正末帧：第 1 段只有首帧没有身份参考，脸、发型、肤色、肌肉、戒指一轮轮累积（第 12 轮起头发变卷，第 15–17 轮脸上一片黑点、晒黑、肌肉越来越夸张）。观众看视频时后台做，不增加等待
-            aj = FR / f'{rid}_anchor.jpg'; qa['anchor_via'] = qa_guard.key_frame(L.anchor_prompt(st_now or '', issues, s.get('wardrobe')), [url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], aj, hedge=1)
+            aj = FR / f'{rid}_anchor.jpg'; st_a = '；'.join(x for x in (st_now, ('姿态：' + s['posture']) if s.get('posture') and '姿态：' not in (st_now or '') else '') if x); qa['anchor_via'] = qa_guard.key_frame(L.anchor_prompt(st_a, issues, s.get('wardrobe'), s.get('holding') or '', bool(L.VEH.search(str(s.get('posture') or '') + str(s.get('holding') or '')))), [url, qa_guard.HE_HEAD, qa_guard.HER_HEAD], aj, hedge=1)  # V2.4：站着、坐着也写进去；close-up 看不到下半身时，第 13 轮把坐着回正成站着
             diff = qa_guard.scene_diff(jpg, aj); qa['anchor_diff'] = diff
-            if diff <= qa_guard.ANCHOR_DIFF_MAX: url = c.upload(aj)['url']; qa['anchored'] = True; high = []
+            if diff <= (qa_guard.ANCHOR_DIFF_BOTH if qa.get('her', True) and qa.get('face', True) and not s.get('frame_serious') else qa_guard.ANCHOR_DIFF_MAX): url = c.upload(aj)['url']; qa['anchored'] = True; high = []
             else: log('ANCHOR', rid, 'rejected: scene changed', diff)
         except Exception as e: qa['anchor_err'] = str(e)[:200]; log('ANCHORFAIL', rid, str(e)[:160])
         soft = [] if high else [i['text'] for i in qa.get('issues', []) if isinstance(i, dict) and i.get('level') == 'high' and i.get('kind') in ('face', 'skin', 'light')]  # light（窗外像白天）也后台修：v0.16 一次阻塞修图被退回，下一轮白等 2.5 分钟
@@ -203,7 +204,7 @@ def prepare_frame(s, rid, seg2_url):
 
 def cont_of(s):
     """V2.0：这一刻的姿态、手里的东西、已出现东西的外观，每轮带给导演层。"""
-    return {'posture': s.get('posture') or '', 'holding': s.get('holding') or '', 'looks': dict(s.get('looks') or {})}
+    return {'posture': s.get('posture') or '', 'holding': s.get('holding') or '', 'looks': dict(s.get('looks') or {}), 'items': list(s.get('items') or []), 'left': dict(s.get('left') or {})}
 
 
 def state_text(s):
@@ -221,10 +222,10 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
     use = (R[rid].get('spec') or {}).get('use_key'); key = R[rid].get('key_url')
     if first == 'bridge': kw['first_frame_image'] = frame_url; kw['last_frame_image'] = key  # V2.0：首帧上一刻、尾帧关键帧，一镜到底把动作演出来
     elif i == 1 and use == 'bridge': frame_url = key; kw['first_frame_image'] = key  # V2.0：第 2 段从变化之后的样子开始
-    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
+    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + [u for u, _ in L.seg_looks(R[rid]['spec'], R[rid]['spec'].get('wardrobe_end'), len(list(extra)[:2]))]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
     elif first == 'lock': kw['first_frame_image'] = kw['last_frame_image'] = frame_url  # V0.17：10+10 第 1 段首尾帧都锁成上一刻画面
     elif first or (L.SEG2_FIRST and not extra): kw['first_frame_image'] = frame_url  # v0.11：第 2 段也从同一张首帧出发（参考图模式容易拍成第三人称、出现过肩）
-    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
+    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + ([u for u, _ in L.seg_looks(R[rid]['spec'], R[rid]['spec'].get('wardrobe_end'), 0)] if not extra else [])  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
     elif no_scene: kw['ref_images'] = [STAGING_URL, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
     else: kw['ref_images'] = [frame_url, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
     if i == 1 and L.TU.get('vehicle') and 'ref_images' in kw and len(kw['ref_images']) < 5 and any(L.RIDE_ON.search(str(b[0])) for b in (R[rid].get('spec') or {}).get('seg2') or []): kw['ref_images'] = kw['ref_images'] + [L.TU['vehicle']]  # V2.3：摩托每轮款式都在变
@@ -355,6 +356,10 @@ def _worker(rid):
     # V1.5 提速：不等末帧质检和修图。修好了用修好的；质检没严重问题用原图；其余用刚抽出来的末帧；连它都还没传上去（点得极快）才等几秒
     if not s['frame_ready'].is_set():  # V2.0：多等一下回正的末帧。V2.2：等 20 秒改 6 秒（原来姿态总有值，第 3 轮白等 20 秒）
         s['frame_ready'].wait(6)
+        for _ in range(48):  # V2.4：至少等到质检做完（回归 R5：抽出来的末帧里多了一个她，质检已经会往前换一帧，但这轮直接用了没查过的）
+            if s.get('frame_raw') or s['frame_ready'].is_set(): break
+            time.sleep(0.25)
+        if s.get('frame_serious'): s['frame_ready'].wait(25)  # 末帧多了人：等修好
     if s['frame_ready'].is_set(): frame_url = s.get('frame_url'); r['frame_pick'] = 'ready'
     elif s.get('frame_raw'): frame_url = s['frame_raw']; r['frame_pick'] = 'checked raw'
     else:
@@ -378,11 +383,11 @@ def _worker(rid):
     w0, w1 = sp.get('wardrobe_start') or {}, sp.get('wardrobe_end') or {}
     moved_now = L.moved(sp, s.get('set') or director.OPEN_SET)
     sp['use_key'] = None
-    plain_move = moved_now and not w1 and director._pose(sp.get('posture_end')) in ('站', '坐')  # V2.2：穿着默认、站着或坐着的普通换场不画关键帧（17 轮里 6 轮，每次多等 15–31 秒），用站位母版和服装母版
+    plain_move = moved_now and not w0 and not w1 and director._pose(sp.get('posture_end')) in ('站', '坐')  # V2.2：穿着默认、站着或坐着的普通换场不画关键帧（17 轮里 6 轮，每次多等 15–31 秒），用站位母版和服装母版
     if r['mode'] not in L.SEG1_LOCK and sp.get('key') and not plain_move and (moved_now or w0 != w1 or sp.get('posture_changed')):
         tk = now(); r['status'] = 'keyframe'; r['mode'] = r['mode']; save(rid)
         try:
-            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + ([L.TU['vehicle']] if L.TU.get('vehicle') and re.search('骑|摩托', str(sp.get('posture_end'))) else []), kj)
+            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, L.key_people(w1)[0] or qa_guard.HE_HEAD, L.key_people(w1)[1] or qa_guard.HER_HEAD] + ([L.TU['vehicle']] if L.TU.get('vehicle') and re.search('骑|摩托', str(sp.get('posture_end'))) else []), kj)
             r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
             sp['use_key'] = 'ref' if (moved_now or extra) else 'bridge'  # 有身份母版的配角要带参考图，首尾帧模式带不了
         except Exception as e: log('KEYFAIL', rid, str(e)[:200])  # V2.2：不再重试和退回 Waku（曾一次等 195 秒），这一轮按没有关键帧走
@@ -412,7 +417,7 @@ def _worker(rid):
         s['cast_last'] = list(sp.get('cast') or []) + [x['name'] for x in (sp.get('extras') or []) if isinstance(x, dict) and x.get('name')]
         s['worn'] = r.get('worn') or []; s['worn_after'] = s['worn']
         s['wardrobe'] = sp.get('wardrobe_end') or {}  # V1.8
-        s['posture'] = sp.get('posture_end') or ''; s['holding'] = sp.get('holding_end') or ''; s['looks'] = sp.get('looks') or {}  # V2.0
+        s['posture'] = sp.get('posture_end') or ''; s['holding'] = sp.get('holding_end') or ''; s['looks'] = sp.get('looks') or {}; s['items'] = sp.get('items_end') or []; s['left'] = sp.get('left_end') or {}  # V2.0；V2.4 物品台账
         s['staging'] = sp.get('staging') or s.get('staging') or 'face'
         new = [str(k).strip().upper() for k in (sp.get('cards_done') or []) if str(k).strip().upper() not in s.setdefault('cards', [])]
         s['cards'] += new
@@ -424,7 +429,7 @@ def _worker(rid):
                  progress=prog, three_q=sp.get('three_q'), stall_after=s['stall'], input_type=sp.get('input_type'), ask=sp.get('ask'), delivered=sp.get('delivered'), hook_type=sp.get('hook_type')); save(rid)
         log('PLACE', rid, s['place'], 'changed' if changed else f"rounds_here={s['place_rounds']}", 'route', sp.get('route'), 'target', sp.get('target'),
             'cards', s['cards'], 'stall', s['stall'], 'type', sp.get('input_type'), 'try', sp.get('director_attempts'), 'ask', sp.get('ask'), 'delivered', sp.get('delivered'), 'hook', sp.get('hook_type'))
-        s['frame_ready'] = threading.Event()
+        s['frame_ready'] = threading.Event(); s['frame_serious'] = False
         s['frame_pending'] = rid; s.pop('frame_raw', None); s.pop('frame_quick', None)
         threading.Thread(target=prepare_frame, args=(s, rid, r['segs'][1]['url']), daemon=True).start()
         speculate(s)
@@ -467,7 +472,7 @@ def restore_session(sid):
         if r.get('scene_changed') and (r.get('spec') or {}).get('set'): s['set'] = r['spec']['set']
         s['staging'] = (r.get('spec') or {}).get('staging') or s.get('staging') or 'bed'
     s['worn'] = s['worn_after'] = []
-    sp0 = last.get('spec') or {}; s['wardrobe'] = sp0.get('wardrobe_end') or {}; s['posture'] = sp0.get('posture_end') or ''; s['holding'] = sp0.get('holding_end') or ''; s['looks'] = sp0.get('looks') or {}  # V2.0
+    sp0 = last.get('spec') or {}; s['wardrobe'] = sp0.get('wardrobe_end') or {}; s['posture'] = sp0.get('posture_end') or ''; s['holding'] = sp0.get('holding_end') or ''; s['items'] = sp0.get('items_end') or []; s['left'] = sp0.get('left_end') or {}; s['looks'] = sp0.get('looks') or {}  # V2.0
     s['frame_url'] = c.upload(jpg)['url']; s['frame_ready'].set()
     S[sid] = s; speculate(s); log('RESTORE', sid, 'rounds', len(done), 'from', last['id'])
     return s

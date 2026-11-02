@@ -74,17 +74,19 @@ def _edit(prompt, images, timeout):
     return j['asset_url']
 
 
+KEY_ALT = 'google/gemini-2.5-flash-image'  # 2026-11-02 实测 20 秒、$0.039
 KEY_MODEL = 'google/gemini-3.1-flash-lite-image'  # 2026-11-01 实测：同一条指令 22.8 秒、约 $0.035；Waku 通道排队时 65–120 秒，等不起
 
 
+ANCHOR_DIFF_BOTH = 50  # V2.4：两人都在画面里时回正不该改构图；第 13–17 轮差 87–107 的回正把坐着改成站着、多画出摩托，全被放行
 ANCHOR_DIFF_MAX = 120  # 回正可以改构图（末帧是吻戏近景时回正会拉远，第 11–14 轮差 86–98 被拒，长相衣服又漂了），差到这个程度才是换了地点
 
 
-def key_frame(prompt, images, out, timeout=45, hedge=2):
+def key_frame(prompt, images, out, timeout=45, hedge=3):
     """V2.0：状态关键帧（第 2 段第一张画面），写到本地文件 out。V2.2：同时发两个请求，先回来的用（单次 13–56 秒，抖动大），不再退回 Waku（曾一次等 195 秒）；都失败就抛错，这一轮按没有关键帧走。"""
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    body = {'model': KEY_MODEL, 'modalities': ['image', 'text'], 'image_config': {'aspect_ratio': '9:16'}, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': prompt}] + [{'type': 'image_url', 'image_url': {'url': u}} for u in images]}]}
-    def one(_):
+    def one(i):
+        body = {'model': KEY_ALT if i == 1 else KEY_MODEL, 'modalities': ['image', 'text'], 'image_config': {'aspect_ratio': '9:16'}, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': prompt}] + [{'type': 'image_url', 'image_url': {'url': u}} for u in images]}]}  # V2.4：第 2 个请求换模型（回归 R2 同一模型 3 个请求一起排队，47 秒全超时，这一轮穿着和姿态全错）
         req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
         with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
         u = ((j['choices'][0]['message'].get('images') or [{}])[0].get('image_url') or {}).get('url') or ''

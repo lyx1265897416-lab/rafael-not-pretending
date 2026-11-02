@@ -12,3 +12,7 @@
 
 ## V2.1（2026-11-01，共用 PE）
 director.py、live_common.py、qa_guard.py、raf_third_relay.py 现在由 tools/realtime-third/render.py 从通用模板和本目录 drama_slots.py 合成，不要手改；launchd 重启中转前会自动合成一次。改规则改 tools/realtime-third/templates/，改这部剧的内容改 drama_slots.py。备份 backup-v20pre/。隔离回归 output/rafael-third-v20test（S01541465d、S020104975）。
+
+
+## V2.4（2026-11-02，复盘 Vicky 22 轮 S184319582）
+物品台账、穿脱、动作按字面、穿着参考图、回正不动姿态、关键帧换模型对冲。回归 S193607ba7、S200051ab6、S2218500d2；规则在 tools/realtime-third，决策 D31。

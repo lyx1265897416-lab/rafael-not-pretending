@@ -314,6 +314,14 @@ SYSTEM = WRITER_PE + "\n" + DIRECTOR_PE + "\n" + OUTPUT_PE + r"""
 - wardrobe 只写身上穿着什么，不写脱下来的衣服在哪（那个写进 items）。脱下来就完全离开身体，不挂在手臂、手肘或腰上。
 - 谁脱就写谁的手：她脱他的衣服，写“她的双手抓住他 T 恤下摆往上掀过头顶，他抬起手臂配合”。
 - 离开脱衣服的地点时要先穿回去（代码也会兜底）：seg1 写一拍“两人起身，捡起脱下的衣服穿回身上”，wardrobe 写回原来的穿着，key 和 seg2 不再写赤裸上身。只有她明确说不穿，才继续不穿。
+【换衣服（V2.6，硬规则，Vicky：不要当着他的面换衣服；要正确响应她的穿着要求）】
+- 她要换衣服，wardrobe.she 就写新穿着，当轮一定换成，不能只拿着衣服比一比，也不能写“不变”。写死颜色、材质、款式、长度和鞋，例如“深蓝色棉质长袖及膝连衣裙，黑色平底鞋”。换回穿过的衣服时，从【她穿过的衣服】里一字不改地抄。
+- 永远不拍换衣服的过程：seg1 她拿好衣服，让他等一下；seg2 第一拍是空镜（关着的房门，或新地点），下一拍她已经穿好。她明确说当着他的面换，他可以留在房间里，但镜头只拍他的反应。分镜不写穿、套、换、脱、拉平裙子。
+- 换下来的衣服不进画面，不写进 items。换了地点，手里没穿的衣服不跟着走。
+- 她要比基尼、泳衣就真的穿（代码写死成包得住的款式）。这是海边的日常穿着：分镜只写动作和表情，不写身材和身体部位，用中景或全景，从正面或侧面拍，不从身后拍。
+【不裸露（V2.6，硬规则，Vicky：严格规避，尤其女生）】
+- 任何一帧两人都穿着衣服。她要脱衣服时，她最多脱掉最外面的一层（开衫、外套），里面的上衣和裤子或裙子一直穿着；她再往下要求时，不演脱，用吻、切到手和脸、关灯、地上的外衣空镜或时间跳转表达。
+- 他最多到赤裸上身，而且只在她明确要求时；裤子一直穿着。wardrobe 和 key 里不写“赤裸”以外的裸露、内衣、没穿。
 【动作要演对（V2.4，硬规则，Vicky：动态响应要正确）】
 - 她这一句里的身体动作，当轮按字面演到：跨坐就是她面对面坐到他腿上（两人衣服都穿着，镜头停在上半身），翻身压住就是她翻到他上方、双手撑在他肩旁俯身；拉他起身就是真的站起来。不换成更轻的动作，也不用接吻代替。
 - 一拍只写一个看得见的动作。seg1 5 秒只演一个动作，并且这一个动作要演完。
@@ -369,7 +377,9 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
     if level: pace += f'\n【亲密进度】上一轮到了第 {level} 级。她这一轮如果在往下走，至少到第 {min(5, level + 1)} 级，不重复上一轮的演法；她要停或要聊就听她的。这时候他不再追问她的来历和答案。'
     for ask_, _, how_ in POSE_ASK:  # V2.4 提速：要求提前写明，第一遍就写对（回归里 4/8 轮打回重写，每次多 15 秒）
         if ask_.search(text or ''): pace += f'\n【这一句的动作】{how_}。posture 和 key 都这样写，动作放进 seg1 一镜到底演完，seg2 从第一拍起就是这个姿态。'
-    if re.search('脱|穿上|穿回|换上', text or ''): pace += '\n【这一句的穿脱】只在 seg1 的一拍里演完（她做的就写她的手），seg2 不再出现脱、穿、滑落这些字；wardrobe 写结束时的穿着，key 写好。'
+    if cont.get('outfits'): pace += '\n【她穿过的衣服，换回时一字不改地抄】' + '；'.join(cont['outfits']) + '。'
+    if WEAR_ASK.search(text or '') and not NO_WEAR.search(text or ''): pace += '\n【这一句要换衣服】wardrobe.she 写新穿着。不拍换的过程：seg1 她拿好衣服让他等一下；seg2 第一拍是空镜，下一拍她已经穿好；key 写穿好后两人同框、看得清整套衣服的样子。'
+    elif re.search('脱|穿上|穿回|换上', text or ''): pace += '\n【这一句的穿脱】只在 seg1 的一拍里演完（她做的就写她的手），seg2 不再出现脱、穿、滑落这些字；wardrobe 写结束时的穿着，key 写好。'
     if re.search('去|走|回', text or '') and not RIDE_ASK.search(text or '') and _pose(cont.get('posture') or '') != '骑': pace += '\n【怎么去】她没说骑车：不拍路上，空镜之后直接到目的地，到了就站着或坐着，看她要看的东西。'
     known = {h['place']: h['set'] for h in history if h.get('place') and h.get('set')}
     if known: pace += '\n【去过的地点】回到这些地方时 location 和 set 照抄，是同一个房间：' + '；'.join(f'{k}：{v}' for k, v in known.items())
@@ -438,7 +448,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
             if _sim(k, str(sp.get('location') or '')) >= 0.6 and room(k) == room(str(sp.get('location') or '')): sp['location'] = k; sp['set'] = v; break  # 要是同一种房间（“公寓卧室”和“公寓客厅”相似度也有 0.67）
     settle_ride(sp, cont, set_now); settle_walk(sp, set_now)
     ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp); empty_first(sp, set_now)
-    settle_wardrobe(sp, wardrobe, text, set_now, cont.get('posture') or ''); settle_state(sp, cont, wardrobe, text); clean_zh(sp)
+    settle_wardrobe(sp, wardrobe, text, set_now, cont.get('posture') or '', cont.get('outfits') or ()); settle_state(sp, cont, wardrobe, text); clean_zh(sp)
     ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or '')
     sp['lint_left'] = lint(sp, m, ctx)  # V1.5：修完还剩的问题只记录，不再为选项单独调一次导演层
     sp['lint_first'] = first_bad
@@ -841,7 +851,14 @@ def state_issues(sp, ctx):
         bad.append('【必改】seg2 在骑车或开车，就以骑行收尾，posture 写骑在行驶的摩托上；到了目的地下车放到下一轮（两段同时生成，第 2 段中途换姿态会乱）' if RIDE_ASK.search(t) else '【必改】她没说要骑车：seg2 不写路上和骑行，空镜之后直接到目的地（回归：她说去看日落，被写成一路骑车，没到观景处）')
     if sp.get('scene_changed') and moved_at > 0:
         bad.append('【必改】换地点的这一轮，原地点的戏都放进 seg1，seg2 第一拍就切到新地点（空镜）：第 2 段没有原地点的画面，写了也演不对')
-    if changed and any(WEAR_NOW.search(str(b[0])) for b in seg2):
+    asked_wear = WEAR_ASK.search(t) and not NO_WEAR.search(t)
+    if asked_wear and not changed:
+        bad.append('【必改】她要换衣服：wardrobe.she 写新穿着（颜色、材质、款式、长度、鞋），当轮换成，不能写“不变”，也不能只拿着比一比')
+    if NUDE_SHE.search(str(w.get('she') or '')) or NUDE_HE.search(str(w.get('he') or '')):
+        bad.append('【必改】任何一帧两人都穿着衣服：她最多脱掉最外面一层，他最多赤裸上身，其余用吻、切镜、关灯或时间跳转表达')
+    if sp.get('input_type') == 'direction' and sp.get('delivered') is False:
+        bad.append('【必改】她这一句明确要求的动作，当轮就要在画面里完成（delivered 为 true），不留到下一轮')
+    if changed and not asked_wear and any(WEAR_NOW.search(str(b[0])) for b in seg2):
         bad.append('【必改】穿脱衣服放进 seg1 的一拍演完，seg2 从第一拍起就是变化之后的样子，不再写脱、穿的动作（两段同时生成，放在 seg2 会反复横跳），并写好 key')
     return bad
 
@@ -856,6 +873,13 @@ def _n(x):
     except (TypeError, ValueError): return 1
 
 
+WEAR_ASK = re.compile('换(上|成|回|件|一件|身|套|条)|穿(上|回|这|那|件|条|一)|试穿|比基尼|泳衣|泳装')
+NO_WEAR = re.compile('不(用|要|想)?(换|穿)|别(换|穿)')
+NUDE_SHE = re.compile('赤裸|裸|没穿|光着|内衣|胸罩|文胸|内裤|一丝不挂')
+SWIM = re.compile('比基尼|泳衣|泳装|泳裤')
+SWIM_LOOK = '深蓝色宽肩带比基尼上衣，高腰全包比基尼下装，腰间系一条及膝的不透明白色棉布裹裙，赤脚'  # V2.6：写死成包得住的款式（自由发挥时是细带三角款，第 3、4 轮还有背后近景），关键帧也不再被拒
+NUDE_HE = re.compile('内裤|一丝不挂|全裸|没穿裤|裤子脱|脱了裤')
+CHANGE_ACT = re.compile('穿好|穿上|穿回|穿着新|穿进|套上|套下|套在|换上|换好|换成|换回|脱下|脱掉|褪|拉平|抚平裙|系好|扣好|试穿')
 GONE = '吃完|吃光|喝完|收走|收起|扔|丢|递走|带走|拿走|放回|塞进|装进'
 CARRY = re.compile('手|身上|肩上|怀里|背着|拎着|带着')
 CLOTH = re.compile('衣|衫|恤|裤|外套|鞋|袜')
@@ -904,7 +928,9 @@ def settle_items(sp, cont, text):
     for x in sp.get('items') or []:
         if isinstance(x, dict) and x.get('name'): new.append({'name': str(x['name']), 'n': _n(x), 'at': str(x.get('at') or '')})
     beats = ' '.join(str(b[0]) for k in ('seg1', 'seg2') for b in sp.get(k) or [])
-    if sp.get('redressed'): new = [x for x in new if not CLOTH.search(x['name'])]; prev = [x for x in prev if not CLOTH.search(x['name'])]
+    if sp.get('redressed') or sp.get('offscreen_change'): new = [x for x in new if not CLOTH.search(x['name'])]; prev = [x for x in prev if not CLOTH.search(x['name'])]
+    new = [x for x in new if '身上' not in x['at']]; prev = [x for x in prev if '身上' not in str(x.get('at'))]  # V2.6：穿在身上的不是物品（第 5 轮“浅蓝裙在她身上、米白裙也在她身上”）
+    if sp.get('scene_changed'): new = [x for x in new if not CLOTH.search(x['name'])]  # V2.6：手里没穿的衣服不跟着走（第 10 轮深蓝裙跟到海边，竖在沙滩上）
     if sp.get('scene_changed'):
         here0 = str(cont.get('place') or '')
         stay = [x for x in prev if not (any(_same(x['name'], y['name']) for y in new) and CARRY.search(next(y['at'] for y in new if _same(x['name'], y['name']))))]
@@ -948,7 +974,7 @@ TIME_SKIP = re.compile('第二天|次日|关灯|熄灯')
 HER_TOP = '方领无袖贴身细罗纹针织上衣（奶油底，几组清晰的黑灰细横条；两条宽肩带，不是抹胸、不是细吊带、不是扎染；没有领子、没有纽扣、没有袖子）'
 
 
-OFF_CLAUSE = re.compile(r'[（(][^）)]*(脱|落|丢|放在|留在)[^）)]*[）)]|[，,；;][^，,；;]*(已脱|脱下|脱掉|落在|丢在|留在|放在)[^，,；;]*')
+OFF_CLAUSE = re.compile(r'[（(][^）)]*(脱|落|丢|放在|留在|换下)[^）)]*[）)]|[，,；;][^，,；;]*(已脱|脱下|脱掉|落在|丢在|留在|放在|已换|换下|不加|不戴)[^，,；;]*')
 KEEP_OFF = re.compile('光着|不穿|别穿|不用穿|就这样去|脱')
 BARE = re.compile(r'(赤裸|光着|裸着)上身[，,、]?')
 
@@ -958,9 +984,36 @@ def clean_wear(v):
     return OFF_CLAUSE.sub('', str(v or '')).strip('，,；; ')
 
 
+def _outer_only(a, b):
+    """V2.6：只是脱或穿最外面一层（开衫），不算换衣服。"""
+    a, b = str(a or L.SHE_DEFAULT), str(b or L.SHE_DEFAULT)
+    if (L.LOOK_OUTER in a) == (L.LOOK_OUTER in b): return a == b
+    if L.is_base(a) and L.is_base(b): return True
+    drop = lambda x: re.sub(rf'[，,、；;]?[^，,、；;]*{L.LOOK_OUTER}[^，,、；;]*', '', x)
+    return _sim(drop(a), drop(b)) >= 0.8
+
+
+def settle_change(sp, start, end):
+    """V2.6（Vicky：不当着他的面换衣服；第 4 轮她上身裸露）：真正换衣服的轮次，不拍过程。分镜里穿、套、换的拍子拿掉，第 1 段她让他等一下，第 2 段空镜之后已经穿好。"""
+    if _outer_only(start.get('she'), end.get('she')) and not (end.get('he') != start.get('he') and not re.search('赤裸|光着|裸', str(end.get('he') or start.get('he') or ''))): return
+    z = sp.get('zh') if isinstance(sp.get('zh'), dict) else {}
+    def keep(k):
+        rows = [(b, (z.get(k) or [''] * 99)[i] if i < len(z.get(k) or [''] * 99) else '') for i, b in enumerate(sp.get(k) or []) if not CHANGE_ACT.search(str(b[0]))]
+        sp[k] = [r[0] for r in rows]; z[k] = [r[1] for r in rows]
+    keep('seg1'); keep('seg2')
+    if not sp['seg1']: sp['seg1'] = [['她朝他笑着抬起一根手指，让他等一下', 'One sec.', '双人中景，固定', '她']]; z['seg1'] = ['等我一下。']
+    if not sp['seg2'] or not str(sp['seg2'][0][2]).startswith('空镜'):
+        sp['seg2'].insert(0, ['切到房门的空镜：房门关着，光线安静，画面里没有人', '', '空镜，固定', '']); z.setdefault('seg2', []).insert(0, '')
+    if len(sp['seg2']) < 2: sp['seg2'].append(['她已经穿好站在他面前，他上下看了她一眼', '', '双人中景，固定', '']); z['seg2'].append('')
+    sp['zh'] = z; sp['offscreen_change'] = True
+    sp['hold'] = '两人看着对方，穿着和上一刻一样'
+
+
 def redress(sp, start, text, set_now, posture=''):
     """V2.4（第 17–22 轮他光着上身去看日落、骑车、吃夜宵）：离开脱衣服的地点要先穿回去，除非她说不穿。"""
     if not start or not sp.get('scene_changed') or KEEP_OFF.search(text or '') or _pose(posture) == '骑': return False
+    bare = re.search('赤裸|光着|裸', str(start.get('he') or '')); off = start.get('she') and L.is_base(start['she']) and L.LOOK_OUTER not in start['she']
+    if not bare and not off: return False  # V2.6：她自己换的裙子不是“脱了”，不能清掉（第 7 轮要蓝裙，到了厨房变回条纹上衣）
     if (sp.get('set') or '').rstrip('。') == (set_now or '').rstrip('。'): return False
     s1 = sp.get('seg1') or []; z = (sp.get('zh') or {}).get('seg1') if isinstance(sp.get('zh'), dict) else None
     off = '、'.join(x for x in (('他的 T 恤' if re.search('赤裸|光着|裸', str(start.get('he') or '')) else ''), (f'她的{L.LOOK_OUTER}' if start.get('she') and L.LOOK_OUTER not in str(start.get('she')) else '')) if x) or '脱下的衣服'
@@ -982,7 +1035,7 @@ def redress(sp, start, text, set_now, posture=''):
     return True
 
 
-def settle_wardrobe(sp, prev, text='', set_now=None, posture=''):
+def settle_wardrobe(sp, prev, asked='', set_now=None, posture='', outfits=()):
     """V1.8：记下这一轮开始和结束时的穿着。穿着变了但分镜里没有演（也没有时间跳跃），就退回原来的，不让衣服凭空出现或消失。"""
     start = {k: clean_wear(v) for k, v in (prev or {}).items()}; end = dict(start); w = sp.get('wardrobe') if isinstance(sp.get('wardrobe'), dict) else {}
     for k in ('he', 'she'):
@@ -990,9 +1043,32 @@ def settle_wardrobe(sp, prev, text='', set_now=None, posture=''):
         if v and v != '不变' and '不变' not in v[:4]: end[k] = clean_wear(v)
     text = ' '.join(str(b[0]) for k in ('seg1', 'seg2') for b in sp.get(k) or [])
     if end.get('she') == start.get('she') and re.search('开衫[^，。；]{0,10}(滑落|脱|褪|滑下|落)|(脱|褪)[^，。；]{0,6}开衫', text): end['she'] = '奶油色和黑色条纹针织上衣，奶油白阔腿长裤，开衫已经脱下'  # 导演层写了大衣滑落却没记（S035613ebe 第 3 轮）
-    if end != start and not WEAR_ACT.search(text) and not TIME_SKIP.search(text): sp['wardrobe_reverted'] = end; end = dict(start)
+    want = WEAR_ASK.search(asked or '') and not NO_WEAR.search(asked or '')
+    if want and end.get('she') == start.get('she'):  # 打回之后还是“不变”：按她的原话换（第 8、10 轮“换件蓝裙”“换比基尼”都没换）
+        m = re.search('(?:换(?:上|成|回|件|一件|条|身|套)?|穿(?:上|回|件|条|一件|一条)?)(?:那件|这件|一件)?([^，,。；再去]{2,12}?)(?:然后|再|，|,|。|去|出门|吧|$)', asked)
+        got = m.group(1) if m and not re.search('别的|衣服|一下|其他|回来|回去', m.group(1)) else ''
+        if got and got[:2] not in str(start.get('she') or ''): end['she'] = got; sp['wear_fallback'] = True
+        elif not got and re.search('换回|穿回', asked):  # 换回穿过的那件
+            old = [o for o in outfits if o != start.get('she') and any(c in asked for c in (o[:2], o[1:3]))] or [o for o in outfits if o != start.get('she')]
+            if old: end['she'] = old[-1]; sp['wear_fallback'] = True
+    for k in ('she',):
+        for o in outfits:
+            if end.get(k) and end[k] != o and end[k][:2] == o[:2] and _sim(end[k], o) >= 0.75: end[k] = o; break  # 同一条裙子不换说法；颜色不同就是另一条（第一版把米色裙认成深蓝裙）
+    if SWIM.search(str(end.get('she') or '')): end['she'] = SWIM_LOOK
+    if NUDE_SHE.search(str(end.get('she') or '')): sp['nude_cut'] = end.get('she'); end['she'] = start.get('she') or L.SHE_DEFAULT
+    if NUDE_HE.search(str(end.get('he') or '')): sp['nude_cut'] = end.get('he'); end['he'] = start.get('he') or L.HE_DEFAULT
+    if end != start and not want and not WEAR_ACT.search(text) and not TIME_SKIP.search(text): sp['wardrobe_reverted'] = end; end = dict(start)
     if end.get('she'): end['she'] = end['she'].replace('奶油色和黑色条纹针织上衣', HER_TOP) if HER_TOP else end['she']  # V2.2：写死款式（只写“条纹针织上衣”，关键帧画成带领短袖 POLO，之后一路带下去）
-    if redress(sp, start, text, set_now, posture): end = {}
+    if not want and redress(sp, start, asked, set_now, posture): end = {}
+    settle_change(sp, start, end)
+    if SWIM.search(str(end.get('she') or '')):  # V2.6：泳装不拍近景（第 3 轮胸口近景）
+        for b in sp.get('seg2') or []:
+            if re.match('(略仰|略俯|侧面)?.{0,4}(双人|单人)?(中近景|近景|特写)', str(b[2])): b[2] = '双人中景，固定'
+    s2 = sp.get('seg2') or []; z2 = (sp.get('zh') or {}).get('seg2') if isinstance(sp.get('zh'), dict) else None
+    for i in range(len(s2) - 2, -1, -1):  # 连着两个空镜只留后一个（第 10 轮房门 + 海滩，中间闪黑帧）
+        if str(s2[i][2]).startswith('空镜') and str(s2[i + 1][2]).startswith('空镜'):
+            s2.pop(i)
+            if isinstance(z2, list) and i < len(z2): z2.pop(i)
     sp['wardrobe_start'] = start; sp['wardrobe_end'] = end; sp['wardrobe_changed'] = bool(start or end)
 
 

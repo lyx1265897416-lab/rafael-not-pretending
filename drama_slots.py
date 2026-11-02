@@ -3,6 +3,8 @@ tools/realtime-third/render.py 把模板和这里的内容合成本目录的 dir
 HE = 'Rafael'
 OUT = {'director': 'director.py', 'live_common': 'live_common.py', 'qa_guard': 'qa_guard.py', 'relay': 'raf_third_relay.py'}
 SLOTS = {
+    'l.FEET_HE': "'脚入镜时他穿黑色皮靴；他不戴手表，银链不变成金链。'",
+    'l.LOOK_BASE': "'条纹针织|横条|条纹上衣'",
     'l.FEET': "'脚入镜时：他穿黑色皮靴，她穿黑色平底鞋，不光脚，不换鞋；他不戴手表，银链不变成金链。'",
     'l.LOOK_OUTER': "'开衫'",
     'l.VEHICLE_LOOK': '黑色旧摩托车：黑色油箱、棕色皮座、圆形车灯，车身没有文字和标志，',

@@ -298,7 +298,22 @@ _SHE_END = '她的长相、发型和服装全程不变，严格以她的身份�
 _NIGHT = '时间是深夜，室内暖灯，窗外是夜色；在室外时天空是黑色的夜空，只有灯光和月光，没有白天的天光、蓝天和白云。'
 TAIL_V18 = '每个人只有两只手、两条胳膊，没有悬空、不连着身体的手臂和袖子；同一件衣服只有一件，衣服不穿进身体，脱下来的衣服落下后留在原处。每样东西的数量不变，不会自己变多、变少、变样或移动；画面里只出现写到的东西，不凭空多出任何物件，也不让已有的东西凭空消失。'
 TU = globals().get('TU') or {}  # 有的剧没有 masters/urls.json
-FEET = '脚入镜时：他穿黑色皮靴，她穿黑色平底鞋，不光脚，不换鞋；他不戴手表，银链不变成金链。'  # V2.4：第 11 轮起他光脚、第 21 轮白运动鞋、第 19 轮又是皮靴
+FEET = '脚入镜时：他穿黑色皮靴，她穿黑色平底鞋，不光脚，不换鞋；他不戴手表，银链不变成金链。'
+FEET_HE = '脚入镜时他穿黑色皮靴；他不戴手表，银链不变成金链。'
+LOOK_BASE = '条纹针织|横条|条纹上衣'
+HER_LOCK = 'Her top, where visible, is a sleeveless square-neck fitted ribbed knit in cream with two wide shoulder straps and groups of crisp thin black-grey horizontal stripes: not strapless, not a tube top, not spaghetti straps, not tie-dye, not a plain white tank, no collar, no buttons, no sleeves. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace.'
+HER_LOCK_CUSTOM = 'Short nude nails, no earrings, no necklace.'
+CLOTHED = '她从第一帧到最后一帧都穿着写到的衣服。'
+
+
+def is_base(she):
+    """V2.6：她穿的还是定装那身（开衫可脱可穿）。其余都是她自己换的衣服，不能拿定装图和定装描述去套（第 6 轮她要米色长裙，关键帧按定装画成条纹上衣）。"""
+    return not she or bool(re.search(LOOK_BASE, str(she))) if LOOK_BASE else not she
+
+
+def her_lock(w):
+    return HER_LOCK if is_base((w or {}).get('she')) else HER_LOCK_CUSTOM
+  # V2.4：第 11 轮起他光脚、第 21 轮白运动鞋、第 19 轮又是皮靴
 LOOK_OUTER = '开衫'
 VEH = re.compile('摩托|机车|汽车|轿车|单车|自行车|(?<![库床])车(?!库|间|道|灯光)')
 SEG1_ACT = re.compile('翻身|压|扑|跨|抱起|起身|站起|坐下|坐到|躺|倒|跌|走|跑|拉|推|脱|穿|拿|递|放|吻|拥|抱|搂|掀|踢|跳')
@@ -415,7 +430,9 @@ def prompts(sp, mode, *a, **kw):
         if not VEH.search(' '.join(str(b[0]) for b in beats) + str(po) + str(ho) + seg_set): p += '这个地点的画面里没有摩托车和其他车。'  # V2.4：第 13、14 轮沙滩上冒出摩托
         if k == 0 and sp.get('redressed'): p = p.replace('不自己穿回去', '只在写到的那一拍把衣服穿回去')
         if k == 0 and HER_STRIP.search(' '.join(str(b[0]) for b in beats)): p += '脱衣服的动作是她的双手做的：她的手抓着衣服往上掀，他只是抬起手臂配合，不是他自己脱。'  # V2.4：第 14 轮他自己脱了
-        if not re.search('光脚|赤脚|脱了?鞋|鞋[^，。]{0,4}脱', str(sp.get('intent') or '') + str(sp.get('wardrobe_end') or '') + str(ho)): p += FEET
+        if not re.search('光脚|赤脚|脱了?鞋|鞋[^，。]{0,4}脱', str(sp.get('intent') or '') + str(sp.get('wardrobe_end') or '') + str(ho)): p += FEET if is_base((w1 or {}).get('she')) else FEET_HE
+        if k == 1 and re.search('比基尼|泳', str((w1 or {}).get('she') or '')) or k == 0 and re.search('比基尼|泳', str(start.get('she') or '')): p += '她的镜头是中景或全景，从正面或侧面拍，不从身后拍，动作自然日常。'
+        p += CLOTHED  # V2.6：第 4 轮换裙子时她上身裸露。写法只写“穿着”，不写身体部位（否定句写身体部位会触发内容审核）
         if any(RIDE_ON.search(str(b[0])) for b in beats) and TU.get('vehicle') and not f: p = '最后一张参考图是这辆车：款式和颜色照它，它的白底不进画面。' + p
         sg = sp.get('song')
         if sg and k == 1: p = _sing_marks(p, sg, beats)
@@ -448,16 +465,16 @@ def mix_of(sp):
 def look_refs(w):
     """V2.4：脱了衣服的那个人，给一张这一刻穿着的全身参考图。第 13–18 轮只靠文字，她的条纹针织上衣变成抹胸、白吊带、扎染背心。"""
     w = w or {}; he, she = str(w.get('he') or ''), str(w.get('she') or ''); out = []
-    if TU.get('look_she_off') and she and LOOK_OUTER not in she: out.append((TU['look_she_off'], '她此刻穿着的样子'))
+    if TU.get('look_she_off') and she and is_base(she) and LOOK_OUTER not in she: out.append((TU['look_she_off'], '她此刻穿着的样子'))
     if TU.get('look_he_off') and re.search('赤裸|光着|裸', he): out.append((TU['look_he_off'], '他此刻的上身纹身、裤子和鞋'))
     return out
 
 
-def key_people(w):
+def key_people(w, her_url=None):
     """V2.4 关键帧的人物图：穿着图本身带脸，直接替换头像，始终 3 张（实测每多一张图关键帧慢 10 秒以上：3 张 11–25 秒，4 张 22–32 秒）。回归 R4 只给头像，关键帧把开衫画丢了。"""
     w = w or {}; he, she = str(w.get('he') or ''), str(w.get('she') or '')
     h = TU.get('look_he_off') if re.search('赤裸|光着|裸', he) else TU.get('outfit')
-    s = TU.get('look_she_on') if (not she or LOOK_OUTER in she) else TU.get('look_she_off')
+    s = (TU.get('look_she_on') if (not she or LOOK_OUTER in she) else TU.get('look_she_off')) if is_base(she) else her_url  # V2.6：她自己换的衣服，第一次只给脸，之后用第一次画出来的那张
     return h, s
 
 
@@ -465,6 +482,7 @@ def seg_looks(sp, w, n_extra):
     """第 2 段参考图里放得下的穿着图：Vivix 最多 5 张（上一刻或关键帧、两张头像、配角、摩托）。"""
     ride = TU.get('vehicle') and any(RIDE_ON.search(str(b[0])) for b in sp.get('seg2') or [])
     out = look_refs(w)
+    if sp.get('she_look_url') and not is_base((w or {}).get('she')): out = [(sp['she_look_url'], '她此刻穿着的样子')] + out  # V2.6：同一条裙子每轮款式都在变
     if TU.get('outfit') and not re.search('赤裸|光着|裸', str((w or {}).get('he') or '')): out = out + [(TU['outfit'], '他此刻的 T 恤和裤子，只有一种颜色')]  # 回归：骑行时 T 恤变成棕灰两色
     return out[:max(0, 2 - n_extra - (1 if ride else 0))]
 
@@ -483,7 +501,7 @@ def anchor_prompt(state, issues, w=None, objects='', vehicle=False):
             + 'Keep every object exactly as it is in Image 1 and do not add any object that is not already visible in Image 1, including clothes on the ground. '
             + (f'Also fix (Chinese): {"；".join(issues)}。 ' if issues else '')
             + 'He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, one full tattoo sleeve on his right arm only (ink black and orange-brown gear pattern, ending at the wrist), his left arm has no tattoo, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown, single color. His jeans are washed blue straight wide-leg with faded knees, his boots black leather. One thick SILVER chain, never gold. The tattoo sleeve is only on his right arm; no watch, no rings. '
-            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless square-neck fitted ribbed knit in cream with two wide shoulder straps and groups of crisp thin black-grey horizontal stripes: not strapless, not a tube top, not spaghetti straps, not tie-dye, not a plain white tank, no collar, no buttons, no sleeves. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. ' + her_lock(w) + ' '
             + ('There is exactly one motorcycle. ' if vehicle else 'There is no motorcycle, car or any other vehicle in this frame. ')
             + 'Every object appears only once. Keep the same semi-realistic high-detail character rendering. Correct anatomy, five fingers on each hand. Add nothing new. No text, no logo, no watermark.')
 
@@ -496,19 +514,21 @@ def key_prompt(sp, moved):
     head = ('Image 1 is the previous moment of the same film: use it for the two people and the render style, but the location changes to the one written below. ' if moved
             else 'Image 1 is the previous moment of the same film: keep the same location, background, lighting, color, camera side and about the same camera distance, not closer; both people keep their upper bodies in frame. ')
     when = ''  # 时间写在 set 里
-    h_img, s_img = key_people(w); veh = bool(VEH.search(' '.join(str(sp.get(k) or '') for k in ('key', 'posture_end', 'holding_end', 'set'))))
+    h_img, s_img = key_people(w, sp.get('she_look_url')); veh = bool(VEH.search(' '.join(str(sp.get(k) or '') for k in ('key', 'posture_end', 'holding_end', 'set'))))
     return (head + ('Image 2 is the man (Rafael): his face and hair' + (', and also his exact clothes and tattoos right now' if h_img else '') + '; ignore its studio background. Image 3 is the woman: her face and hair' + (', and also her exact clothes and shoes right now' if s_img else '') + '; ignore its studio background. ') +
             f'Paint the next moment as one still frame, vertical 9:16. What the frame shows (written in Chinese): {sp.get("key")}。 '
             f'Location (Chinese): {place}。 Posture (Chinese): {sp.get("posture_end") or "按画面描述"}。 '
             f'His clothes right now (Chinese): {he}。 Her clothes right now (Chinese): {she}。 Clothes must be exactly these, nothing added back; whatever he has not taken off (trousers, shoes, accessories) keeps the exact color and style it has in Image 1. ' + when
             + 'A garment that was taken off is completely off the body: not on the arms, not at the elbows, not around the waist. '
             + (f'她身上穿着{LOOK_OUTER}，袖子在手臂上，不能画丢。 ' if LOOK_OUTER in she else '')
+            + 'She is fully dressed in exactly the clothes written above. '
+            + ('Medium-wide shot so her whole outfit is clearly visible. ' if sp.get('offscreen_change') else '')
             + (f'Objects here, exact count, only if their position falls inside this frame (Chinese): {sp.get("holding_end")}。 Clothes on the ground lie crumpled where they fell, part of the scene, never flat-laid or like icons. ' if sp.get('holding_end') else 'Nobody holds anything and nothing lies on the ground unless written above. ')
             + (f'Fixed object looks (Chinese): ' + '；'.join(f'{k}：{v}' for k, v in (sp.get('looks') or {}).items() if k in str(sp.get('key')) or k in str(sp.get('holding_end'))) + '。 ' if any(k in str(sp.get('key')) or k in str(sp.get('holding_end')) for k in (sp.get('looks') or {})) else '')
             + 'If his torso is bare: a natural fit build, not a bodybuilder, no oil, the same skin color as his face, lit by the light of this location. '
             + ('Nothing from the previous location comes along: no plates, food, cartons or furniture from it, only what is written under Objects. ' if moved else '')
             + 'Exactly two people: the man on the left of the frame, the woman on the right, both faces visible. He: 26, smooth clean-shaven skin, messy black hair, thick straight black brows, dark brown eyes, thorn tattoo on the side of the neck, thin silver chain, one full tattoo sleeve on his right arm only (ink black and orange-brown gear pattern, ending at the wrist), his left arm has no tattoo, no tattoos on his hands, no rings, no watch. His hair is short, messy and spiky, not curly, not long, not neat. Light natural skin, not tanned; clean skin with no stubble, no dirt, no sand and no spots on the face. A lean long build, not bulky. If he wears the T-shirt it is faded charcoal grey, not black, not brown, single color. His jeans are washed blue straight wide-leg with faded knees, his boots black leather. One thick SILVER chain, never gold. The tattoo sleeve is only on his right arm; no watch, no rings. '
-            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. Her top, where visible, is a sleeveless square-neck fitted ribbed knit in cream with two wide shoulder straps and groups of crisp thin black-grey horizontal stripes: not strapless, not a tube top, not spaghetti straps, not tie-dye, not a plain white tank, no collar, no buttons, no sleeves. Her cardigan, if she wears it, is a cropped cream ribbed long-sleeve one. Her trousers are cream-white and wide-leg. A striped cream-grey tie sash at the waist, black flat shoes. Short nude nails, no earrings, no necklace. '
+            'She: adult with a mature refined face, pale neutral skin, slim tapered jaw, light grey-blue eyes, very light taupe eye makeup, a few faint freckles, natural dusty-rose lips, very long layered soft beige dirty-blonde hair with light-brown roots and a center part, not silver and not golden; short nude nails, no rings, no bracelet. ' + her_lock(w) + ' '
             + ('There is exactly one motorcycle. ' if veh else 'There is no motorcycle, car or any other vehicle in this frame. ')
             + 'Every object appears only once. Keep the same semi-realistic high-detail character rendering as Image 1. Correct anatomy, five fingers on each hand. No text, no logo, no watermark.')
 

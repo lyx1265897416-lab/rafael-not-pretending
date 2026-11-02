@@ -95,7 +95,11 @@ def key_frame(prompt, images, out, timeout=45, hedge=3):
     ex = ThreadPoolExecutor(hedge); err = None
     try:
         for f in as_completed([ex.submit(one, i) for i in range(hedge)], timeout=timeout + 2):
-            try: Path(out).write_bytes(f.result()); return 'openrouter'
+            try:
+                import io
+                from PIL import Image
+                Image.open(io.BytesIO(f.result())).convert('RGB').save(out, 'JPEG', quality=93)  # V2.6：备用模型返回 PNG，存成 .jpg 上传 Vivix 报 20008，这一轮关键帧作废
+                return 'openrouter'
             except Exception as e: err = e
     except Exception as e: err = e
     finally: ex.shutdown(wait=False)
@@ -174,6 +178,29 @@ def grid(mp4, out):
     fc = ';'.join(f'[{i}:v]scale=300:-2,setsar=1[v{i}]' for i in range(n)) + ';' + ''.join(f'[v{i}]' for i in range(n)) + f'xstack=inputs={n}:layout={lay}'
     subprocess.run([L.FFMPEG, '-v', 'error', '-y', *ins, '-filter_complex', fc, '-frames:v', '1', '-q:v', '3', str(out)], check=True)
     return n
+
+
+NUDE_CHECK = ('这张图是一段短视频按时间顺序等间隔抽的帧，内容是两个成年人的电影片段。逐格检查有没有人物裸露：女性的胸部、上身或下身没有衣服遮挡（哪怕只有一两格、哪怕是半透明的过渡画面）；任何人的下身裸露。'
+              '男性赤裸上身不算；泳装、吊带、露肩不算；只看到肩膀、手臂和背部不算。只输出 JSON：{"bad": true 或 false, "why": "哪一格、什么问题，没有写空"}')
+
+
+def nude_check(mp4, timeout=20):
+    """V2.6 开播前的裸露检查（Vicky：严格规避，尤其女生）。每秒 2 帧，比 grid 密：第 4 轮裸露只有 1 秒。结构上已经不拍换衣服过程，这里是最后一道。"""
+    g = Path(str(mp4)).with_suffix('.nude.jpg')
+    subprocess.run(['/Users/vicky/Interactive storyline/.media-runtime/vivix-bin/ffmpeg', '-v', 'error', '-y', '-i', str(mp4), '-vf', 'fps=2,scale=200:-2,tile=8x4', '-frames:v', '1', '-q:v', '4', str(g)], check=True)
+    b64 = base64.b64encode(g.read_bytes()).decode(); t0 = time.time()
+    for model in ('google/gemini-2.5-flash', VLM):  # 快的先看，它不答再换
+        try:
+            body = {'model': model, 'max_tokens': 300, 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': NUDE_CHECK}, {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b64}}]}]}
+            req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
+            with U.urlopen(req, timeout=timeout) as r: j = json.loads(r.read())
+            txt = j['choices'][0]['message'].get('content') or ''; i = txt.find('{')
+            if i >= 0:
+                g.unlink(missing_ok=True)
+                return dict(json.JSONDecoder().raw_decode(txt[i:])[0], sec=round(time.time() - t0, 1), model=model)
+        except Exception: pass
+    g.unlink(missing_ok=True)
+    return {'bad': False, 'why': 'check failed', 'err': True, 'sec': round(time.time() - t0, 1)}
 
 
 def seg_state(mp4, state, timeout=40):

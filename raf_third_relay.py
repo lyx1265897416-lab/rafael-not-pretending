@@ -204,7 +204,7 @@ def prepare_frame(s, rid, seg2_url):
 
 def cont_of(s):
     """V2.0：这一刻的姿态、手里的东西、已出现东西的外观，每轮带给导演层。"""
-    return {'posture': s.get('posture') or '', 'holding': s.get('holding') or '', 'looks': dict(s.get('looks') or {}), 'items': list(s.get('items') or []), 'left': dict(s.get('left') or {})}
+    return {'posture': s.get('posture') or '', 'holding': s.get('holding') or '', 'looks': dict(s.get('looks') or {}), 'items': list(s.get('items') or []), 'left': dict(s.get('left') or {}), 'outfits': list(s.get('she_looks') or {})}
 
 
 def state_text(s):
@@ -267,6 +267,16 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
 
     try:
         job = gen(c.build(**kw)); s['gen_ready_at'] = now()
+        sp_nc = R[rid].get('spec') or {}
+        if sp_nc.get('wardrobe_start') != sp_nc.get('wardrobe_end') or int(sp_nc.get('intimacy') or 0) >= 2 or not L.is_base((sp_nc.get('wardrobe_end') or {}).get('she')):  # V2.6：有穿脱或亲密的轮次开播前查裸露
+            for tn in range(2):
+                ncf = FR / f'{rid}_{i + 1}_nc.mp4'
+                try: U.urlretrieve(job['video_url'], ncf); nc = qa_guard.nude_check(ncf)
+                except Exception as e: nc = {'bad': False, 'err': str(e)[:120]}
+                ncf.unlink(missing_ok=True); s.setdefault('nude_check', []).append(nc); log('NUDECHECK', rid, i + 1, tn, json.dumps(nc, ensure_ascii=False)[:160])
+                if not nc.get('bad'): break
+                if tn == 1: raise RuntimeError('这段画面没有通过检查，已拦下，请再发送一次')
+                job = gen(c.build(**kw)); s['gen_ready_at'] = now()
         cast = list((R[rid].get('spec') or {}).get('cast') or []) + [x['name'] for x in ((R[rid].get('spec') or {}).get('extras') or []) if isinstance(x, dict) and x.get('name')]  # V1.5：其他角色不算多余的人
         props = [x.get('name') for x in ((R[rid].get('spec') or {}).get('props') or []) if isinstance(x, dict) and x.get('name')] + [w + '（披在她身上）' for w in (R[rid].get('worn') or [])]
         sp_now = R[rid].get('spec') or {}; w_end = sp_now.get('wardrobe_end') or {}
@@ -383,13 +393,15 @@ def _worker(rid):
     w0, w1 = sp.get('wardrobe_start') or {}, sp.get('wardrobe_end') or {}
     moved_now = L.moved(sp, s.get('set') or director.OPEN_SET)
     sp['use_key'] = None
+    sp['she_look_url'] = (s.get('she_looks') or {}).get(w1.get('she') or '')  # V2.6
     plain_move = moved_now and not w0 and not w1 and director._pose(sp.get('posture_end')) in ('站', '坐')  # V2.2：穿着默认、站着或坐着的普通换场不画关键帧（17 轮里 6 轮，每次多等 15–31 秒），用站位母版和服装母版
     if r['mode'] not in L.SEG1_LOCK and sp.get('key') and not plain_move and (moved_now or w0 != w1 or sp.get('posture_changed')):
         tk = now(); r['status'] = 'keyframe'; r['mode'] = r['mode']; save(rid)
         try:
-            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, L.key_people(w1)[0] or qa_guard.HE_HEAD, L.key_people(w1)[1] or qa_guard.HER_HEAD] + ([L.TU['vehicle']] if L.TU.get('vehicle') and re.search('骑|摩托', str(sp.get('posture_end'))) else []), kj)
+            kj = FR / f'{rid}_key.jpg'; r['key_via'] = qa_guard.key_frame(L.key_prompt(sp, moved_now), [frame_url, L.key_people(w1, sp['she_look_url'])[0] or qa_guard.HE_HEAD, L.key_people(w1, sp['she_look_url'])[1] or qa_guard.HER_HEAD] + ([L.TU['vehicle']] if L.TU.get('vehicle') and re.search('骑|摩托', str(sp.get('posture_end'))) else []), kj)
             r['key_url'] = c.upload(kj)['url']  # 传到 Vivix 再用，比外部地址稳
-            sp['use_key'] = 'ref' if (moved_now or extra) else 'bridge'  # 有身份母版的配角要带参考图，首尾帧模式带不了
+            if w1.get('she') and not L.is_base(w1['she']): s.setdefault('she_looks', {}).setdefault(w1['she'], r['key_url'])  # V2.6：这条裙子第一次画出来的样子，之后都照它
+            sp['use_key'] = 'ref' if (moved_now or extra or sp.get('offscreen_change')) else 'bridge'  # V2.6：换衣服不走首尾帧（首尾帧会把中间的换衣过程演出来，第 4 轮她上身裸露）  # 有身份母版的配角要带参考图，首尾帧模式带不了
         except Exception as e: log('KEYFAIL', rid, str(e)[:200])  # V2.2：不再重试和退回 Waku（曾一次等 195 秒），这一轮按没有关键帧走
         r['key_sec'] = round((now() - tk) / 1000, 1); log('KEY', rid, sp['use_key'], r['key_sec'], 's')
     segs = L.prompts(sp, r['mode'], hands_in_frame=hands_now, set_start=s.get('set') or director.OPEN_SET, stage_start=s.get('staging') or 'bed', seg2_first=L.SEG2_FIRST and not extra, worn='、'.join(w for w in worn_now if w != L.JACKET), jacket_start=jacket_start)

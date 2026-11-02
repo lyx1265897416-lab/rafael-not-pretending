@@ -180,22 +180,23 @@ def grid(mp4, out):
     return n
 
 
-HARD_MODEL = 'google/gemini-3-flash-preview'  # 2026-11-02 用 22 段已审片段比过：它 4/4 全中、误报 2/18（其中 1 个确实有重影）；gemini-2.5-flash 3/4、误报 6/18；haiku 2/4
+HARD_MODEL = 'google/gemini-3-flash-preview'  # 2026-11-02 用 25 段已审片段比过：它 6/6 全中、误报 1/19；flash-lite 6/6、误报 6/19；gemini-2.5-flash、haiku 都有漏报
+HARD_LITE = 'google/gemini-3.1-flash-lite'
 HARD_CHECK = ('下面是同一段短视频按时间顺序抽出的 {n} 张独立的画面，每张都是一整帧，互相没有拼接。这段视频里只应该有这些人：{people}。有些画面是空镜（没有人）或只拍到一个人，这都是正常的。逐张看，只报你确定的明显错误：\n'
               '- people：一张画面里，人数多于应有人数；同一个人出现两次（两个长得一样的人）；半透明的重影人；空镜里闪现人。\n'
               '- motion：人在空中飞、横着飞过画面、身体严重扭曲折叠。\n'
               '- nude：女性胸部裸露、上身没有穿衣服；任何人下身裸露。男性赤裸上身、泳装不算。\n'
-              '手指细节、手臂姿势、衣服颜色和款式、画风都不报。只输出 JSON：{{"bad": true 或 false, "kinds": [], "frames": [第几张], "why": "简短说明"}}')
+              '{wear}手指细节、手臂姿势、画风都不报。只输出 JSON：{{"bad": true 或 false, "kinds": [], "frames": [第几张], "why": "简短说明"}}')
 
 
-def hard_check(mp4, people, timeout=15):
-    """V2.7 开播前的硬错误检查（Vicky：角色数量错误、动态错误、裸露要严格规避）。独立帧、每秒 1.6 帧：拼成一张图时模型把相邻格子当成多个人，误报超过一半。同发两个请求，约 5–10 秒；都没答换 Sonnet，再没答就放行并记录。"""
+def hard_check(mp4, people, wear='', timeout=20):
+    """V2.7 开播前的硬错误检查（Vicky：角色数量错误、动态错误、裸露要严格规避）。独立帧、每秒 1.6 帧：拼成一张图时模型把相邻格子当成多个人，误报超过一半。约 5–10 秒；都没答就放行并记录。"""
     import tempfile
     import live_common as L
     with tempfile.TemporaryDirectory() as d:
         subprocess.run([L.FFMPEG, '-v', 'error', '-y', '-i', str(mp4), '-vf', 'fps=1.6,scale=384:-2', '-q:v', '5', d + '/%02d.jpg'], check=True)
         fr = [base64.b64encode(p.read_bytes()).decode() for p in sorted(Path(d).glob('*.jpg'))]
-    t0 = time.time(); content = [{'type': 'text', 'text': HARD_CHECK.format(n=len(fr), people=people)}] + [{'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b}} for b in fr]
+    t0 = time.time(); content = [{'type': 'text', 'text': HARD_CHECK.format(n=len(fr), people=people, wear=(f'- clothes：人物这时应该穿着：{wear}。一眼就能看出的颜色错误才报，比如灰色 T 恤变成白色、一条裙子变了颜色。深浅差一点、款式细节、光线造成的差异都不报。\n' if wear else '衣服颜色和款式也不报。'))}] + [{'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + b}} for b in fr]
     def ask(model):
         body = {'model': model, 'max_tokens': 600, 'messages': [{'role': 'user', 'content': content}]}
         req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + director._key(), 'Content-Type': 'application/json'})
@@ -203,14 +204,15 @@ def hard_check(mp4, people, timeout=15):
         txt = j['choices'][0]['message'].get('content') or ''
         return dict(json.JSONDecoder().raw_decode(txt[txt.find('{'):])[0], sec=round(time.time() - t0, 1), model=model)
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    ex = ThreadPoolExecutor(2)  # 同发两个，先回来的用：单个 4–24 秒，抖动大
+    ex = ThreadPoolExecutor(3)  # 主模型同发两个，先回来的用（平时 5–10 秒，偶尔 15 秒以上）；20 秒还没有就用便宜模型的结论（它什么都拦得住，但误报约三成）
+    main = [ex.submit(ask, HARD_MODEL) for _ in range(2)]; lite = ex.submit(ask, HARD_LITE)
     try:
-        for f in as_completed([ex.submit(ask, HARD_MODEL) for _ in range(2)], timeout=timeout):
+        for f in as_completed(main, timeout=timeout):
             try: return f.result()
             except Exception: pass
     except Exception: pass
     finally: ex.shutdown(wait=False)
-    try: return ask(VLM)
+    try: return lite.result(timeout=3)
     except Exception: pass
     return {'bad': False, 'kinds': [], 'why': 'check failed', 'err': True, 'sec': round(time.time() - t0, 1)}
 

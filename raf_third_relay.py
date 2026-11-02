@@ -223,10 +223,10 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
     use = (R[rid].get('spec') or {}).get('use_key'); key = R[rid].get('key_url')
     if first == 'bridge': kw['first_frame_image'] = frame_url; kw['last_frame_image'] = key  # V2.0：首帧上一刻、尾帧关键帧，一镜到底把动作演出来
     elif i == 1 and use == 'bridge': frame_url = key; kw['first_frame_image'] = key  # V2.0：第 2 段从变化之后的样子开始
-    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]; frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
+    elif i == 1 and use == 'ref': kw['ref_images'] = [key, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + L.swatch(R[rid]['spec'].get('wardrobe_end')); frame_url = key  # V2.0：换地点，关键帧定地点、穿着和姿态；头像不带衣服
     elif first == 'lock': kw['first_frame_image'] = kw['last_frame_image'] = frame_url  # V0.17：10+10 第 1 段首尾帧都锁成上一刻画面
     elif first or (L.SEG2_FIRST and not extra): kw['first_frame_image'] = frame_url  # v0.11：第 2 段也从同一张首帧出发（参考图模式容易拍成第三人称、出现过肩）
-    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2]  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
+    elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + L.swatch(R[rid]['spec'].get('wardrobe_end'))  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
     elif no_scene: kw['ref_images'] = [STAGING_URL, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
     else: kw['ref_images'] = [frame_url, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
     if i == 1 and L.TU.get('vehicle') and 'ref_images' in kw and len(kw['ref_images']) < 5 and any(L.RIDE_ON.search(str(b[0])) for b in (R[rid].get('spec') or {}).get('seg2') or []): kw['ref_images'] = kw['ref_images'] + [L.TU['vehicle']]  # V2.3：摩托每轮款式都在变
@@ -270,10 +270,11 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
         job = gen(c.build(**kw)); s['gen_ready_at'] = now()
         sp_hc = R[rid].get('spec') or {}; names = ['男主', '女主'] + list(sp_hc.get('cast') or []) + [x['name'] for x in (sp_hc.get('extras') or []) if isinstance(x, dict) and x.get('name')]  # V2.7：每一轮每一段都查，不合格重新生成，最多三次，都不合格就拦下
         people = f"{len(names)} 个人：{'、'.join(names)}" + ('；背景远处的路人不算' if re.search('酒吧|餐厅|夜宵|摊|街|人群|派对', str(sp_hc.get('set') or '')) else '') + ('；这一段他会变身成狼，不算错误' if sp_hc.get('wolf') else '')
+        w_hc = sp_hc.get('wardrobe_end') or {}; wear = f"男主：{w_hc.get('he') or L.HE_DEFAULT}；女主：{w_hc.get('she') or L.SHE_DEFAULT}"  # 只查第 2 段：第 1 段可能正在穿脱
         magic = re.search('飞|魔法|悬浮|漂浮|超能力|变身|穿越', str(R[rid].get('input') or ''))
         for tn in range(3):
             hcf = FR / f'{rid}_{i + 1}_hc.mp4'
-            try: U.urlretrieve(job['video_url'], hcf); hc = qa_guard.hard_check(hcf, people)
+            try: U.urlretrieve(job['video_url'], hcf); hc = qa_guard.hard_check(hcf, people, wear if i == 1 else '')
             except Exception as e: hc = {'bad': False, 'kinds': [], 'err': str(e)[:120]}
             hcf.unlink(missing_ok=True); s.setdefault('hard_check', []).append(hc); log('HARDCHECK', rid, i + 1, tn, json.dumps(hc, ensure_ascii=False)[:200])
             kinds = set(hc.get('kinds') or []) or ({'people'} if hc.get('bad') else set())

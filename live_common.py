@@ -433,6 +433,7 @@ def prompts(sp, mode, *a, **kw):
         if not re.search('光脚|赤脚|脱了?鞋|鞋[^，。]{0,4}脱', str(sp.get('intent') or '') + str(sp.get('wardrobe_end') or '') + str(ho)): p += FEET if is_base((w1 or {}).get('she')) else FEET_HE
         if k == 1 and re.search('比基尼|泳', str((w1 or {}).get('she') or '')) or k == 0 and re.search('比基尼|泳', str(start.get('she') or '')): p += '她的镜头是中景或全景，从正面或侧面拍，不从身后拍，动作自然日常。'
         if k == 0 and sp.get('offscreen_change') and end.get('she'): p += f"画面里她拿着或他递给她的那件衣服，就是她接下来要穿的：{end['she']}，颜色和款式一模一样。"  # V2.7：第 1 段递的是白裙子，穿好后是深蓝裙
+        if k == 1 and (use == 'ref' or (custom and not use)) and swatch(w1): p = '参考图里有一张只有深色布料的图：那是他 T 恤的布料和颜色，不是一个人，也不进画面。' + p
         p += CLOTHED  # V2.6：第 4 轮换裙子时她上身裸露。写法只写“穿着”，不写身体部位（否定句写身体部位会触发内容审核）
         if any(RIDE_ON.search(str(b[0])) for b in beats) and TU.get('vehicle') and not f: p = '最后一张参考图是这辆车：款式和颜色照它，它的白底不进画面。' + p
         sg = sp.get('song')
@@ -461,6 +462,11 @@ def mix_of(sp):
         v = (AUDIO_BANK.get('songs') or {}).get(sg['id']) or {}
         n = len(sp.get('seg2') or [1]); out['song'] = {'url': v.get('url'), 'seg': 1, 'at': round(sg['beat'] * 15 / n + 0.2, 2), 'dur': v.get('dur')}
     return out
+
+
+def swatch(w):
+    """V2.7：他穿着 T 恤时，第 2 段带一张只有布料的裁图（不带全身图以后，近景里 T 恤变白）。"""
+    return [TU['he_swatch']] if TU.get('he_swatch') and not re.search('赤裸|光着|裸', str((w or {}).get('he') or '')) else []
 
 
 def key_people(w, her_url=None):

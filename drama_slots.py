@@ -3,6 +3,9 @@ tools/realtime-third/render.py 把模板和这里的内容合成本目录的 dir
 HE = 'Rafael'
 OUT = {'director': 'director.py', 'live_common': 'live_common.py', 'qa_guard': 'qa_guard.py', 'relay': 'raf_third_relay.py'}
 SLOTS = {
+    'q.HER_HAIR_BAD': '发色变成金黄或深棕、头发变短变卷',  # 2026-11-03 女主发色判定从模板挪成槽位
+    'q.HER_HAIR_BAD2': '或发色变成深棕、金黄、变短',
+    'l.BROWS': 'thick straight black brows',  # 2026-11-03 眉毛从模板挪成槽位（洛温是栗棕色）
     'l.FEET_HE': "'脚入镜时他穿黑色皮靴；他不戴手表，银链不变成金链。'",
     'l.LOOK_BASE': "'条纹针织|横条|条纹上衣'",
     'l.FEET': "'脚入镜时：他穿黑色皮靴，她穿黑色平底鞋，不光脚，不换鞋；他不戴手表，银链不变成金链。'",

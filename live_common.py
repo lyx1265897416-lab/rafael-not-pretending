@@ -20,7 +20,7 @@ D = Path(__file__).resolve().parent
 FFMPEG = str(ROOT / '.media-runtime/vivix-bin/ffmpeg')
 SEG2_FIRST = False  # 两段都用首帧的写法试过（2026-10-24 S0603061c1）：没有身份母版，4 轮就变老、瞳色发橙，还拍出了女主正脸；保留开关但不用
 SEG1_REF = True  # v0.15：第 1 段也用参考图（上一刻画面 + 身份母版 + 服装母版）。首帧续接没有母版，脸一轮轮变老、西装换成米色外套（v0.15 自测第 4、6、7、8 轮）
-MODES = {'5+10': (5, 10), '5+15': (5, 15), '10+10': (10, 10)}  # V1.7：5+15 用于自动分流
+MODES = {'5+10': (5, 10), '5+15': (5, 15), '15+15': (15, 15), '10+10': (10, 10)}  # V1.7：5+15 用于自动分流。V2.8（Vicky 11-03）：15+15 和 5+10、5+15 并列，优先 15+15
 SEG1_LOCK = ('10+10',)  # V0.17：10+10 第 1 段改成首尾帧都锁成上一刻画面（咪的修复验证 4/4 无硬错误）。Vivix 首尾帧和参考图不能混用，所以这一段没有身份母版；它的末帧不传给下一轮，漂移不累积
 
 # v0.7（2026-10-24）：按 Seedance/Vivix 的多镜头写法重写。提示词压短、只写要出现的东西，约束放在最后一句；
@@ -46,6 +46,7 @@ AUDIO_BANK = _json2.loads(_ab.read_text()) if _ab.exists() else {}  # V2.3：预
 SEAM = '第一个镜头接着上一刻往下演：两个人的姿势、手的位置和道具的状态都和上一刻一样，不把上一刻已经做完的动作再做一遍；换景别时同时换机位，不在同一个机位上突然放大缩小。'  # V1.2：评分里接缝跳回首帧、同轴跳切扣分最多
 KISS = '吻戏的拍法（V1.4）：靠近只用一个干脆的动作，不慢慢凑近；从嘴唇贴上开始，到动作里写明分开之前，是同一次连续的吻，正常速度，动作一直在细微地变化（头部角度微调、他的手在她背上收紧、她的手指攥紧他的肩），不慢动作、不定格、不僵住；切镜之后的镜头一开始两人就已经在接吻，接着上一镜继续，不重新靠近，不中途分开再吻；手的特写里手一定在动。两人的五官、发型、服装和男左女右在吻中保持不变：每个接吻镜头里 Rafael 的脸都在画面左半边、脸朝画面右侧，她的脸都在画面右半边、脸朝画面左侧，近景和侧面近景也不对调（V1.4 便携包自测第 1 轮最后一个接吻近景两人左右对调）。'
 ACT = '表演自然：Rafael 放松时带一点懒散的笑意，认真时笑意收住、目光聚焦，说话轻缓，不压嗓、不耳语；她说话轻而清楚；情绪在眼神和嘴角。'
+PACE = '节奏（V3.0，Vicky 11-04：说话、动作慢吞吞，有定格感）：人物说话是正常偏快的自然语速，一句接一句，句间不留长停顿；动作是真人速度的连续动作，一个动作做完马上接下一个，不慢动作、不定格、不在一个姿势上停住；镜头里始终有人在动或在说话。'
 STYLE = ('画面和角色参考图是同一种渲染和画质：高级半写实 2.5D 三维角色渲染，皮肤细节自然，眼睛和睫毛清晰，发丝分明，织物质感清楚，对比干净；不雾、不柔焦、脸上不发光、不磨皮、不塑料感、不动漫，标准焦段，五官比例自然，画风全程统一；时间和光线按这个地点写的来，肤色保持参考图的颜色，不偏橙不偏黄。'
          '镜头之间一律硬切，不用叠化、溶镜、淡入淡出、闪白或闪黑；同一地点所有镜头的光线、色温和色调完全一致，跟随这个地点的主光源，不突然变冷变暖、变亮变暗。')
 
@@ -80,8 +81,19 @@ def framing(shot):
     return shot
 
 
+NUM = '零一二三四五六七八九'
+
+
+def on_screen(c, b):
+    """V3.3：这一拍 c 是不是在画面里。只出声的（画外传来 Mei 的声音）不算：S013528c90 第 1 段 Mei、Sloane 只是画外音，提示词仍把她们写成主要人物，模型把两个 Sloane 拍进了画面。"""
+    if len(b) > 3 and b[3] == c: return True
+    a = str(b[0])
+    if c not in a: return False
+    return c in re.sub(rf'(画外|远处|门外)?(传来)?\s*{c}\s*的(声音|喊声|笑声)', '', a)
+
+
 def pov(cast):
-    who = 'Rafael（画面左侧）和她（画面右侧）两个人' if not cast else 'Rafael（画面左侧）、她（画面右侧）和 ' + '、'.join(cast) + ' 三个人'
+    who = 'Rafael（画面左侧）和她（画面右侧）两个人' if not cast else 'Rafael（画面左侧）、她（画面右侧）和 ' + '、'.join(cast) + f' {NUM[2 + len(cast)]}个人（每人只有一个）'
     return (f'第三人称电影镜头：观众站在旁边看着他们，不是任何人的主观视角。主要人物是{who}。'
             '景别和机位按每个镜头写的来（全景、中景、近景、特写、空镜交替，可以略俯、略仰），他比她高一个头；两人同在画面里时 Rafael 永远在画面左侧、她永远在画面右侧，不越轴，两人都不背对镜头。')
 
@@ -120,8 +132,12 @@ def side_of(shot, act, speaker=''):
     第三视角 v1 第 4 轮车里的双人近景拍成了反打（她到了左边），第 5、6 轮的过肩镜头也换了边。"""
     shot = str(shot)
     if shot.startswith('空镜'): return ''
-    if shot.startswith('双人'): return 'Rafael 在画面左侧、她在画面右侧（从这一镜的第一秒起就是这样），'  # V1.3：MD-B 越轴都发生在段落开头几秒
+    if shot.startswith('双人'):
+        extra = [c for c in CAST if on_screen(c, [act, '', '', speaker])]
+        return 'Rafael 在画面左侧、她在画面右侧（从这一镜的第一秒起就是这样），' + (f"画面里另外只有{'、'.join(f'一个 {c}' for c in extra)}，在两人身后或侧后方，不和他们站在一起，" if extra else '')  # V3.3：S015323dc3 第 2 轮双人镜里写了 Sloane 扑倒，三次都拍出两个 Sloane、她的裙子变成 Sloane 的蓝色  # V1.3：MD-B 越轴都发生在段落开头几秒
     if shot.startswith('单人'):
+        other = speaker if speaker in CAST else next((c for c in CAST if re.match(rf'(切到)?{c}', act or '')), '')
+        if other: return f'画面里只有 {other} 一个人（只有一个 {other}，Rafael 和她在画外），'  # V3.3：配角说话的单人镜原来写成“只有 Rafael 一个人”，Mei 宣布开跑时拍出了两个 Mei
         her = speaker == '她' or (speaker != 'Rafael' and re.match(r'(切到)?(她|她的)', act or '') is not None)
         return ('画面里只有她一个人，她在画面右半边、看向画面左侧的他（他在画外），' if her
                 else '画面里只有 Rafael 一个人，他在画面左半边、看向画面右侧的她（她在画外），')
@@ -140,6 +156,8 @@ def shots(beats, dur, start=0, first=1, marks=None):
         if m and not re.search(r'景|特写|镜头|他|她|Rafael|两人', m.group(1).replace('的空镜', '')): here = m.group(1).replace('的空镜', '')  # 第三视角常写“切到她的单人近景”：那是切镜不是换地点
         elif here: a = f'（仍在{here}）' + a  # 换场之后的每一拍都写明地点：参考图还是上一个地点，不写模型会切回去（v0.15 第 3 轮车里的戏最后回到了车库）
         who = b[3] if len(b) > 3 and b[3] else 'Rafael'
+        vo = who.split(':', 1)[-1].split('：', 1)[-1] if who.startswith('画外') else ''
+        if vo in CAST and on_screen(vo, [a, '', '', '']): who = vo; a = a.replace('看向画外', f'看向 {vo}')  # V3.3：动作里人在画面里（Sloane 扑倒在沙上）却写成画外音，改成她在画面里说
         if not l: say = ''
         elif who.startswith('画外'): say = f'，画外传来{who.split(":", 1)[-1].split("：", 1)[-1] or "门外的人"}的声音："{l}"，画面里的 Rafael 和她都闭着嘴在听，这句话不是他们说的，只用眼神回应'
         elif who == 'Rafael':
@@ -221,8 +239,12 @@ def _prompts(sp, mode, hands_in_frame=False, set_start=None, seg2_first=False, s
     st1 = sp.get('staging') or 'face'
     st0 = stage_start if stage_start in STAGING else st1
     cast_all = [c for c in (sp.get('cast') or []) if c in CAST]
-    def seg_cast(beats): return [c for c in cast_all if any(c in b[0] or (len(b) > 3 and b[3] == c) for b in beats)]
+    def seg_cast(beats): return [c for c in cast_all if any(on_screen(c, b) for b in beats)]
     c1, c2 = seg_cast(sp['seg1']), seg_cast(sp['seg2'])
+    def voice_only(beats, cs):  # V3.3：只出声的配角写明不进画面
+        v = [c for c in cast_all if c not in cs and any(c in str(b[0]) or (len(b) > 3 and c in str(b[3])) for b in beats)]
+        return f"{'、'.join(v)} 这一段只有画外的声音，人不出现在画面里。" if v else ''
+    vo1, vo2 = voice_only(sp['seg1'], c1), voice_only(sp['seg2'], c2)
     amb = sp.get('amb') or '安静的室内环境声和窗外远处的海风'
     amb1 = steady(amb)
     s0 = (set_start or sp.get('set') or '').rstrip('。'); s1 = (sp.get('set') or '').rstrip('。')
@@ -233,35 +255,46 @@ def _prompts(sp, mode, hands_in_frame=False, set_start=None, seg2_first=False, s
     place1 = (f'地点：{s0}。' if s0 else '') + T0
     place2 = ((f'开头的地点：{s0}。' if s0 else '') + T0.replace('站位：', '开头的站位：') + f'切到新地点后：{s1}。' + T1.replace('站位：', '新地点的站位：')) if moved else place1
     people = 'Rafael 和她的长相、服装以这些图为准，它们的影棚背景不进画面'
-    if moved:
+    plate = plate_for(sp)  # V3.0：这个地点的固定空景（有就用，没有照旧）
+    if moved and plate:
+        refs = '图片1是新地点的空景：每个镜头的背景、陈设、墙面、窗和光线都照它，人物站位是 Rafael 在画面左侧、她在画面右侧，图片2是 Rafael 的脸，图片3是他的服装，图片4是她（女主）的身份母版（正面头像、全身正面、多角度）' + ''.join(f'，图片{5 + i}是 {c}' for i, c in enumerate(c2)) + f'，{people}；整段都在图片1这个地点，不回到上一个地点。'
+    elif moved:
         refs = '图片1是两人的站位参考：Rafael 在画面左侧、她在画面右侧（只参考左右站位和两人的样子），图片2是 Rafael 的脸，图片3是他的服装，图片4是她（女主）的身份母版（正面头像、全身正面、多角度）' + ''.join(f'，图片{5 + i}是 {c}' for i, c in enumerate(c2)) + f'，{people}；每个镜头的背景按下面写的地点。'
     else:
-        refs = '图片2是 Rafael 的脸，图片3是他的服装，图片4是她（女主）的身份母版（正面头像、全身正面、多角度）' + ''.join(f'，图片{5 + i}是 {c}' for i, c in enumerate(c2)) + f'，{people}；图片1是上一刻的场景，每个镜头的背景、光线和色调都和图片1一致。'
+        refs = '图片2是 Rafael 的脸，图片3是他的服装，图片4是她（女主）的身份母版（正面头像、全身正面、多角度）' + ''.join(f'，图片{5 + i}是 {c}' for i, c in enumerate(c2)) + (('，图片5是这个地点的空景（陈设、墙面和光线照它）' if plate and not c2 else '')) + f'，{people}；图片1是上一刻的场景，每个镜头的背景、光线和色调都和图片1一致。'
     lead = '这一段紧接图片1那一刻：地点、背景、光线、两个人的位置、朝向和距离都和图片1一致，这一段不离开这个地点。'
     end = '最后停在两人同框的镜头上（男左女右，两张脸都看得到），留出悬念。'
     if mode in SEG1_LOCK and not seg2_first:  # 首尾帧锁，一镜到底，最后回到首帧
         lock = ('固定机位，一镜到底：镜头像架在三脚架上，全程不移动、不推近、不拉远、不切镜；两个人在画面里的大小和位置全程和首帧一样，'
                 '画面上半部分的背景全程保持首帧的样子和位置。')
         lead = '首帧和尾帧是同一张画面（上一刻）：开头的场景、光线、两个人的长相、服装、位置、朝向和距离都与首帧一致，这一段不离开这个地点。两人的皮肤质感、他的瞳色和两人的发型全程和首帧完全一样。'
-        p1 = (lock + pov(c1) + place1 + lead + mag1 + her1 + take(sp['seg1'], d1)
-              + '最后 2 秒两人回到首帧的位置、姿势、表情和距离停住，画面和首帧一致。' + ACT + STYLE + tail(amb1, c1))
+        p1 = (lock + pov(c1) + place1 + lead + mag1 + her1 + vo1 + take(sp['seg1'], d1)
+              + '最后 2 秒两人回到首帧的位置、姿势、表情和距离停住，画面和首帧一致。' + ACT + PACE + STYLE + tail(amb1, c1))
         hold2 = '图片1的画面（两人在原位的双人镜头）' if not moved else sp['hold'].rstrip('。')
-        p2 = (refs + pov(c2) + place2 + mag2 + her2 + ''.join(CAST[c][0] for c in c2) + wolf
+        p2 = (refs + pov(c2) + place2 + mag2 + her2 + ''.join(CAST[c][0] for c in c2) + vo2 + wolf
               + f'这一段从上一刻切过来，上一刻是：{hold2}。' + ('换场之前，' if moved else '') + '地点、背景、光线、两个人的位置和朝向与上一刻一致。' + SEAM
-              + shots(sp['seg2'], d2, marks=marks2) + (f"最后停在{sp.get('location') or '新地点'}里，" if moved else '') + end + ACT + STYLE + tail(amb, c2))
+              + shots(sp['seg2'], d2, marks=marks2) + (f"最后停在{sp.get('location') or '新地点'}里，" if moved else '') + end + ACT + PACE + STYLE + tail(amb, c2))
         return [(d1, p1, 'lock'), (d2, p2, False)]
     lead = '这一段从首帧那一刻接着演：地点、背景、光线、两个人的长相、服装、位置、朝向和距离都和首帧一致，这一段不离开这个地点。'  # 第 1 段用首帧续接，和上一轮无缝接上；5 秒漂移小，末帧也不传给下一轮
-    p1 = (pov(c1) + place1 + lead + mag1 + her1 + ''.join(CAST[c][0] for c in c1) + wolf
-          + shots(sp['seg1'], d1, marks=marks1) + f'最后停在：{sp["hold"].rstrip("。")}。' + ACT + STYLE + tail(amb1, c1))
-    p2 = (refs + pov(c2) + place2 + mag2 + her2 + ''.join(CAST[c][0] for c in c2) + wolf
+    p1 = (pov(c1) + place1 + lead + mag1 + her1 + ''.join(CAST[c][0] for c in c1) + vo1 + wolf
+          + shots(sp['seg1'], d1, marks=marks1) + f'最后停在：{sp["hold"].rstrip("。")}。' + ACT + PACE + STYLE + tail(amb1, c1))
+    p2 = (refs + pov(c2) + place2 + mag2 + her2 + ''.join(CAST[c][0] for c in c2) + vo2 + wolf
           + f'这一段从上一刻切过来，上一刻是：{sp["hold"].rstrip("。")}。' + ('换场之前，' if moved else '') + '地点、背景、光线、两个人的位置和朝向与上一刻一致。' + SEAM
-          + shots(sp['seg2'], d2, marks=marks2) + (f"最后停在{sp.get('location') or '新地点'}里，" if moved else '') + end + ACT + STYLE + tail(amb, c2))
+          + shots(sp['seg2'], d2, marks=marks2) + (f"最后停在{sp.get('location') or '新地点'}里，" if moved else '') + end + ACT + PACE + STYLE + tail(amb, c2))
     return [(d1, p1, True), (d2, p2, False)]
 
 
 def seg2_cast_refs(sp):
     """第 2 段需要追加的配角身份母版（按出现顺序）。"""
-    return [CAST[c][1] for c in (sp.get('cast') or []) if c in CAST and any(c in b[0] or (len(b) > 3 and b[3] == c) for b in sp['seg2'])]
+    return [CAST[c][1] for c in (sp.get('cast') or []) if c in CAST and any(on_screen(c, b) for b in sp['seg2'])]
+
+
+def plate_for(sp):
+    """V3.0（三真四假 S001455553：换到套房后第 2 段漂回泳池边，下一轮整轮都在泳池）：masters/urls.json 的 plates 是 {"地点关键词|关键词": 空景图}，这一轮的地点对上就用它当地点参考；没有 plates 的剧照旧。"""
+    loc = str(sp.get('location') or '') + str(sp.get('set') or '')[:20]
+    for k, u in (TU.get('plates') or {}).items():
+        if any(x and x in loc for x in k.split('|')): return u
+    return None
 
 
 def prompts(sp, mode, hands_in_frame=False, set_start=None, seg2_first=False, stage_start=None, worn=None, jacket_start=False):
@@ -400,7 +433,7 @@ def prompts(sp, mode, *a, **kw):
         if k == 1 and use == 'bridge' and i >= 0:  # V2.0：第 2 段从关键帧开始，一开始就是变化之后的样子；不带参考图，服装母版不会把衣服穿回去
             f = True; p = x + '这一段从首帧那一刻接着演：地点、背景、光线、两个人的长相、穿着、姿态、手里的东西都和首帧一样，全程保持，不变回去。' + p[i:]
         if k == 1 and use == 'ref' and i >= 0:
-            sel = [c for c in (sp.get('cast') or []) if c in CAST and any(c in b[0] or (len(b) > 3 and b[3] == c) for b in sp['seg2'])]
+            sel = [c for c in (sp.get('cast') or []) if c in CAST and any(on_screen(c, b) for b in sp['seg2'])]
             f = False; p = x + '图片1是这一段的新地点和两人此刻的样子：地点、光线、两人的穿着、姿态和道具都照它，每个镜头保持，不变回去；图片2只看 Rafael 的脸和头发，图片3只看她的脸和头发' + ''.join(f'，图片{4 + n}是 {c}' for n, c in enumerate(sel)) + '；他们的影棚背景不进画面。' + ('第一个镜头是空镜：画面里完全没有人，也没有车，两人从第二个镜头才出现。' if str(sp['seg2'][0][2]).startswith('空镜') else '') + p[i:]
         if k == 1 and use == 'ref':  # 图片1已经是新地点，再写旧地点和“上一刻”模型会先拍半秒旧地点再叠化（Magnus 实测第 2 段开头闪车库）
             p = re.sub(r'开头的地点：.*?切到新地点后：', '地点：', p, flags=re.S).replace('新地点的站位：', '站位：')

@@ -12,6 +12,7 @@ PACK = (Path(__file__).resolve().parent / 'pack' / 'rafael_pack.json').read_text
 # 关键片段卡的推荐轮次（资料包 E 节）；K01 是开场，K11 只在她主动时演
 CARDS = {b['id']: b for b in json.loads(PACK)['beats']}
 CARD_DUE = {'K02': 1, 'K03': 2, 'K04': 3, 'K05': 4, 'K06': 5, 'K07': 6, 'K08': 8, 'K09': 9, 'K10': 10, 'K11': 11, 'K12': 12, 'K13': 14}  # K11 吻戏：每集至少一场
+CARD_DUE = json.loads(PACK).get('due') or CARD_DUE  # V3.2：资料包可以自己定每张卡的推荐轮次（三真四假节目流程快，9 轮走完）
 MODEL = os.environ.get('DIRECTOR_MODEL', 'anthropic/claude-sonnet-5.5')
 
 
@@ -28,11 +29,31 @@ WRITER_PE = r"""你是女性向互动短剧《Rafael｜这次，不是演的》�
 
 【第一原则：她的意愿第一】
 - 这是她的剧。她想怎么演、往哪走，就跟她走。她可以创作自己的情节：换话题、给自己编身份、开玩笑、提出资料包里没有的设定、去向或关系走向。你顺着她的设定把戏接住、演好、往下推，让 Rafael 用他的性格和世界规则回应她。
-- 资料包只是兜底和引导：她没有方向、卡住或原地打转时，才用资料包里的关键片段把剧情带向预设主线。不能为了赶资料包进度去改写、无视或压过她的方向。
+- 资料包只是兜底和引导：她没有方向、卡住或原地打转时，才用资料包里的关键片段把剧情带向预设主线（她点选项不算她有自己的方向，见【她自己的情节和点选项】）。不能为了赶资料包进度去改写、无视或压过她的方向。
 - 资料包里的台词、事件和选项都是素材：她的情节正好和某个片段一致时可以直接用；不一致就按她的情节改写，或者不用。
-- 她在主导剧情时，资料包整个让位（V1.4）：她最近一轮或这一轮在推她自己的情节，就顺着她的情节往下推演。不插入资料包的事件当钩子（朋友来电、店里催、Evan 来消息、有人上门），不让他把话题拉回告白的答案，选项也不引回资料包。钩子从她的情节里长出来：她做的事带来的后果、两人关系的下一步、她的设定里的新变数。资料包只在剧情推进慢的时候才用：她连续含糊、原地打转，或者连续 2 轮没有推进。
+- 她自己打字推自己的情节时，资料包整个让位（V1.4）：她最近一轮或这一轮在推她自己的情节，就顺着她的情节往下推演。不插入资料包的事件当钩子（朋友来电、店里催、Evan 来消息、有人上门），不让他把话题拉回告白的答案，选项也不引回资料包。钩子从她的情节里长出来：她做的事带来的后果、两人关系的下一步、她的设定里的新变数。资料包只在剧情推进慢的时候才用：她连续含糊、原地打转，或者连续 2 轮没有推进。
 - 她说出口的话只来自她这一轮打的字或点的选项（V1.4）：不替她编台词交代身份、来历，不替她说“我也喜欢你”。她说“我就告诉你”，就停在她要开口的那一刻，或由他追问，答案留给她下一轮自己说。
 - 地点也不限于资料包（V1.1）：她要去哪里、要做什么（回自己房间、上天台吹风、去吃东西、去海边、去医院、去酒吧……），就当轮把她带到那里，自己写新地点的 set（墙面或环境、主要陈设、主光源、时间）。资料包里的地点只在她没有方向时作为兜底的去处。
+
+【她自己的情节和点选项（V2.9，Vicky 11-03 复盘，硬规则）】
+- 只有她自己打字提出的行动、去向、设定、关系走向才算“她在主导剧情”，这时按她的走（她优先）。
+- 她点的选项是你上一轮写好的主线的一步，不是她自己的情节：照选项当场兑现（1–2 拍做完），接着主线照常往前推，关键片段时钟照常走，资料包不让位。
+- 她打的是提问或含糊的话：答一句，主线照常推。
+
+【每一轮都是完整的一小集（V2.9，Vicky 11-03 复盘，硬规则）】
+实例：《今天，再喜欢我一次》人工测 4 轮，每条 30 秒只演一件小事（打开工具袋→拉开院门→走去温室→浇两盆花），男主一直“等她点头、等她指路”，4 轮主线只走了半张卡。
+- 30 秒走完一个小集：她要的事在开头 1–2 拍（5 秒内）做完、看到结果 → Rafael 主动做一件推进主线的事 → 新信息或新事件 → 后果 → 最后停在一件刚发生、逼她做选择的新事上。不把一个小动作拆成好几拍慢慢演（打开袋子、拿出一样、再拿出一样……），不演走过去的过程。
+- 每轮主线往前走一大步：新信息（秘密露出一角、他的反常、配角带来的消息、一样关键的东西）、关系变化、换场、新事件，至少两样，写进 news。一轮可以演完 1–2 张关键片段卡；资料包里排在后面、条件已经成熟的事可以提前。
+- 信息靠画面交代：物件特写、两样东西摆在一起、配角递来东西、有人突然出现；台词短、带信息，每句都让观众多知道一点，不闲聊、不客套。
+- 节奏紧：不写对视、点头、笑一下、等她决定、看着她等下一步这类拍子；一轮最多一个停顿的拍子，而且停顿里要有事在发生。最后一拍不写“他等她回答、等她决定、等她指路”。
+- 每一拍都要演出东西（V3.0，Vicky 11-04：30 秒内容太少，一个对话或动作拖很久）：要么有一句台词，要么有一个推动剧情的动作（拿出、递过、走进、拉住、亮出、打断、有人出现）。没有台词、只有表情的拍子（对视、笑、点头、指尖收拢、嘴角动、呼吸、躺着看对方）整轮最多一拍。台词要密：15 秒的段 3–5 句（所有人合计），5、10 秒的段 1–3 句；句子短（每句不超过 10 个英文词），一句接一句，不留长空。
+- 不拖延（V3.0）：Rafael 不用“明天再问我”“以后告诉你”“现在不行”“就这些”这类话把事情往后推；他可以有不能说的秘密，但同一拍里要给出一样具体的东西（一个线索、一个动作、一个条件、一个赌约）。人设话少、冷淡的男主用行动推进，不用沉默拖时间。
+- 情节需要慢的时候（吻、告白后的沉默、她崩溃或要独处）可以慢，但这一轮的信息量照样要够。
+
+【Rafael 有自己的目标，主动推进剧情（V2.9，硬规则）】
+- Rafael 不是等她发号施令的人：他有自己想要的东西、自己的秘密和计划（资料包的人物卡、真相、冲突），每一轮至少做一件他自己决定的、把主线往前推的事：提出计划、带她去某处、主动摊开一样东西、说出让她起疑的细节、替她挡下麻烦、冒一次险、露出秘密的一角。写进 he_move（一句话：他主动做了什么，推向哪里）。
+- 不写“他等她点头”“他等她指路”“他先问她想怎么做”这类把主动权让回去的拍子，turn 也不写“他没急着……等她”。他尊重她的拒绝和边界（资料包的规则优先），被拒绝后换一种方式继续推，不原地等。
+- 她自己打字给出明确方向时：先按她的方向兑现，他在她的情节里主动推下一步，不抢方向、不拉回资料包。
 
 【先判断她这一句是哪一类（input_type）】
 - direction（明确引导）：她提出一个行动、去向、要他做的事、她自己要做的动作、新的情节或设定、明确的关系表态或明确拒绝。→ 跟她走，按【第一目标】当轮兑现。
@@ -104,27 +125,29 @@ Rafael 第 6–8 轮：她说“骑车带我去兜风”，视频只有戴头盔
 - 不写亲吻以上的亲密细节，不写暴力伤害。
 
 【下一轮的两个选项（硬规则，中转会校验）】
+- 每个选项都是剧情走向的关键引导（V2.9）：选了就打开一段新剧情（一张关键片段卡、一个秘密被揭开一角、关系的一次变化、去一个新地点、和一个人对质），不是杂事和小指令（浇水、挂东西、递工具、指位置、看一眼、走近一点、洒他一下）。两个 leads_to 是两件不同的关键事件。
 - 两个选项都是她的一个具体行动或决定，选了就会让下一件关键的事发生：去厨房、去他的店里、伸手碰他、定下约会的时间、回自己房间、去见 Maya、带他去一个地方……不写提问，不写“说清楚”“问清楚”“让我缓缓”“站在原地”“先别”“再想想”这类原地拉扯，不重复她已经拒绝过或做过的事，也不把上一轮她没选的那个选项换个说法再给一次。A、B 必须走向不同的方向（例如一个更靠近他、一个去做别的事或去别处；两个都是“碰他的手”就不合格）。
 - 她在推自己的情节时（V1.4）：A 顺着她的情节走到下一件事，B 是她情节里另一条更大胆、更主动的路；两个都留在她的情节里，不引回资料包。她没有自己的情节时，A 才走向资料包里的下一个关键片段（输入里会写下一张卡）或下一个地点，B 是另一条同样往前走的路。两条路都不能让剧情停在原地。
 - 关键关头给两难（第 6 课，V2.5）：摊牌、要不要留下、要不要看破这类时刻，A、B 要各有得失，写之前先问“各自得到什么、失去什么”；说不出代价，或一条明显好、一条明显坏，就不算两难。日常推进和亲密戏升温时不强求，不拿选项打断她自己的情节，心意确认后走向吻的选项照旧。
 - 每个选项写上 leads_to：选了它下一轮会发生什么（一句事件，例如“她的客厅：他第一次坐进她的沙发”；走资料包时写关键片段编号加一句事件，例如“K06：修车店里她看到他工作”）。
-- 选项写成她的动作或她说的一句带动作的话，中文不超过 16 个字，英文不超过 12 个词。只有当她正沿着资料包的预设剧情走、局面和某张关键片段卡的 choice 一致时，才可以直接用卡里的选项。next.cue 一句话交代此刻局面（中英各一句；第三视角，用“她”“他”，不用“你”）。选项仍写成她的第一人称（“我……”），观众替她做决定。
+- 选项写成她的动作或她说的一句带动作的话；每个选项是一个完整的小计划，串起 2–3 步，带具体的人、东西或地点，一个选项就涵盖原来 2–3 轮的内容（V3.0，例如“拉他去泻湖赢下挑战，再逼他说出手上茧的来历”；中文 14–36 个字，英文不超过 24 个词）。只有当她正沿着资料包的预设剧情走、局面和某张关键片段卡的 choice 一致时，才可以直接用卡里的选项。next.cue 一句话交代此刻局面（中英各一句；第三视角，用“她”“他”，不用“你”）。选项仍写成她的第一人称（“我……”），观众替她做决定。
 
 """
 
 DIRECTOR_PE = r"""你同时是这部剧的导演分镜：把编剧定下的这一轮剧情拆成两段视频的镜头，保证人物、空间、画面能被视频模型稳定拍出来。
 
 【每条视频的三段结构（固定）】
-1. 回应她这一下（前 5 秒，V2.0）：怎么接最好就怎么接，不固定要说话。她打的是动作或要求（带我去兜风、抱我、把衣服脱了）：直接用动作响应，这 5 秒里事情就开始发生，可以没有任何台词。她打的是一句问话或表态：他用表情、动作或一句很短的话接住（1–6 个英文词）。不让她把自己刚打的字再说一遍；只有这句话本身就是当面对他说、有情绪的（表白、拒绝、开玩笑），才由她说出口，并且改写成自然的短句（不超过 8 个词）。她点的是动作时，第 1 拍由她做这个动作。
-2. 演绎：她这一轮有明确要求时，这里就是兑现：她要的事真正发生、看得见。没有明确要求时，因为她这一下，他做一件推动局面的事，并说一句有信息量的台词（关键片段卡里的台词可以直接用或改写）。
+1. 回应她这一下（5+10、5+15 是第 1 段的 5 秒；15+15 时第 1 段 15 秒：她要的事 1–2 拍做完、看到结果，后面接 Rafael 主动的一步和新信息，V2.9）：怎么接最好就怎么接，不固定要说话。她打的是动作或要求（带我去兜风、抱我、把衣服脱了）：直接用动作响应，这 5 秒里事情就开始发生，可以没有任何台词。她打的是一句问话或表态：他用表情、动作或一句很短的话接住（1–6 个英文词）。不让她把自己刚打的字再说一遍；只有这句话本身就是当面对他说、有情绪的（表白、拒绝、开玩笑），才由她说出口，并且改写成自然的短句（不超过 8 个词）。她点的是动作时，第 1 拍由她做这个动作。
+2. 演绎：她这一轮有明确要求时，这里就是兑现：她要的事真正发生、看得见。没有明确要求时，因为她这一下，他做一件推动局面的事，并说一句有信息量的台词（关键片段卡里的台词可以直接用或改写）。兑现之后，Rafael 都要主动做一件推进主线的事（he_move），带出新信息（news），V2.9。
 3. 引出钩子：兑现之后的后果或新变数，指向下一场；最后停在两人同框的镜头上（双人全景、中景、中近景、近景都可以，按这一刻的情绪选，不要每轮都一样）。来电改成画外的声音。钩子类型要轮换（门外的声音、敲门、店里的事、朋友到了、他的邀请、他说出一件新的事、她身上的变化……），输入里会列出最近两轮用过的钩子，这一轮不能再用同一类；他的玩笑式反问也算一类。
 
 【时长与拍数（按 mode）】
 - 每一拍就是一个镜头（一个景别、一种运镜），拍与拍之间是切。
 - mode=5+10：seg1 1–2 拍（0–5 秒，回应，可以没有台词）；seg2 2–4 拍（0–10 秒，演绎和钩子）。
-- mode=5+15：seg1 1–2 拍（0–5 秒，回应，可以没有台词）；seg2 4–6 拍（0–15 秒，一段连续的情节和钩子；每拍 2–4 秒，有新的动作或信息，不把一个动作拖长）。
-- 本轮 mode=auto 时由你决定时长，写进 dur_mode（V2.3，Vicky）：优先 5+15，前提是 15 秒每一拍都有新的动作或信息，从头到尾都有东西可看：吻戏、唱歌、骑行、配角出现、一段完整的过程（煮面、修东西）。
-- 剧情填不满 15 秒就用 5+10：说完话之后只剩对视、笑、点头、呼吸、肩膀放松，就是填不满。不要为了凑时长写这些拍子，也不要硬凑尴尬的笑。问答、表态这类一两句话的轮次通常就是 5+10。代码会删掉结尾没有表达的拍子，删完不超过 4 拍就走 5+10。
+- mode=5+15：seg1 1–2 拍（0–5 秒，回应，可以没有台词）；seg2 5–7 拍（0–15 秒，一段连续的情节和钩子；每拍 2–3 秒，有新的动作或信息，不把一个动作拖长）。
+- mode=15+15（V2.8，Vicky 11-03：和 5+10、5+15 并列，优先）：seg1 4–6 拍（0–15 秒：头 1–2 拍把她要的事做完、看到结果，后面是 Rafael 主动的一步和新信息，V2.9）；seg2 5–7 拍（0–15 秒，后果、新变数、换场或配角、钩子）。每拍 2–3 秒，有新的动作或信息；15 秒的段 3–5 句台词（所有人合计，V3.0）。
+- 本轮 mode=auto 时由你决定时长，写进 dur_mode（V2.8，Vicky 11-03）：默认写 15+15，一轮演满，事情真的往前走。只有她问了一句只需要简短回答的话才写 5+15（seg1 1–2 拍只回答，seg2 照常演满 15 秒）；内容只够两三拍才写 5+10。吻戏、唱歌、骑行、配角出现、一段完整的过程（煮面、修东西）都用 15+15。
+- 不要为了凑时长写对视、笑、点头、呼吸、肩膀放松这类没有新信息的拍子，也不要硬凑尴尬的笑；15 秒填不满就往前推一步剧情，而不是拖长。代码兜底：seg1 不到 3 拍就不走 15+15；删掉结尾没有表达的拍子后 seg2 不超过 4 拍、且不是吻戏这类重头戏，就走 5+10。
 - mode=10+10：seg1 2–3 拍（回应 + 演绎前半）；seg2 2–4 拍（演绎后半和钩子）。10+10 的 seg1 是首尾帧锁的一镜到底（V0.17）：首帧和尾帧都是上一刻的画面，所以 seg1 的几拍是同一个镜头里先后发生的动作，镜头一栏都写首帧的景别加“固定”；两个人都在原位，只用表情、眼神、头部、手和一句台词演回应和演绎前半，不靠近也不后退，不碰远处的东西，最后回到开头的位置、姿势和距离；hold 写开头那一刻的画面。吻戏、换场都放进 seg2。
 - seg2 最多 7 拍，一般不超过 6 拍。
 - set：这一轮结束时所在地点的固定场景描述，一句话写清时间、墙面材质、主要家具、主光源和色温（例如“周六下午的小书房，深色木墙，一盏暖黄台灯在右侧，窗外是白天”）；资料包有这个地点的 set 就照抄。输入里会给出当前地点的 set：地点不变时原样照抄，不改一个字；换到新地点时写新的。
@@ -155,7 +178,7 @@ DIRECTOR_PE = r"""你同时是这部剧的导演分镜：把编剧定下的这�
 - 声音可以跨过切点（下一镜的声音提前半秒进来，或上一句台词的尾音压在下一镜），但画面一律硬切，不用叠化、淡入淡出、闪白。
 
 【转场（硬规则，中转会校验）】
-- 换场景、换空间时，必须先切一个新地点的空镜：一拍，景别写“空镜，固定”，动作以“切到{新地点}的空镜：”开头，写这个地点的环境、光线和时间（无人、2 秒左右）；下一拍才是两人在新地点的镜头（双人全景或双人中景，交代两人的位置）。
+- 换场景、换空间时，必须先切一个新地点的空镜：一拍，景别写“空镜，固定”，动作以“切到{新地点}的空镜：”开头，写这个地点的环境、光线和时间（无人、1 秒左右；这一拍可以带上画外的台词或声音——上一场最后一句的余音、新地点传来的人声——不空等，V3.0）；下一拍才是两人在新地点的镜头（双人全景或双人中景，交代两人的位置）。
 - 空镜之前的那一拍用一个动作收住原地点（他推开门、她点头、车门关上）；不在两个地点之间直接跳，不拍走过去的过程。
 - 换场的那一轮，seg1 仍在原地点，新地点只从 seg2 的空镜开始。
 
@@ -229,7 +252,7 @@ V1.3 的写法是慢慢靠近、短暂一吻、静止的手、分开，实际只
 
 - 每句台词都标说话人（每拍第四项）：Rafael 说的写 "Rafael"；女主说的写 "她"（每轮最多一句，不超过 8 个词）；出镜的配角写他的名字（"Maya"）；画外的声音写 "画外:Maya" 这种格式，这一拍画面里的人闭着嘴在听。
 - 来电、有人找他：不写手机和口袋（会被画成胸口发光），改成画外的声音——门外的敲门声和说话声、走廊里 Ryan 或 Maya 的声音。
-- 台词英文，每句不超过 10 个词，每句只说一遍。每段最多两句台词（所有人合计），其他拍只有动作和表情；说不完的话留到下一轮。这是硬规则，中转会校验，超了会被打回。
+- 台词英文，每句不超过 10 个词，每句只说一遍。每段最多两句台词（15 秒的段最多三句，所有人合计），其他拍只有动作和表情；说不完的话留到下一轮。这是硬规则，中转会校验，超了会被打回。
 
 【手和接触（第三视角 v1 起）】
 - 单人近景只拍这个人的脸和眼神；松手、牵手、碰脸、扣手腕这类两人有接触的动作，一律写在双人近景里。
@@ -255,7 +278,7 @@ V1.3 的写法是慢慢靠近、短暂一吻、静止的手、分开，实际只
 """
 
 OUTPUT_PE = r"""【输出】只输出一个 JSON 对象，不要解释或 markdown：
-{"dur_mode": "本轮 mode=auto 时必填：5+15 或 5+10；否则照抄本轮 mode",
+{"dur_mode": "本轮 mode=auto 时必填：15+15（默认）、5+15 或 5+10；否则照抄本轮 mode",
  "bgm": "配乐 id；不需要写 none（见【配乐和唱歌】）",
  "song": {"id": "歌的 id", "beat": 0}（这一轮有人唱歌才写，否则写 null）,
  "intimacy": 0,
@@ -281,6 +304,8 @@ OUTPUT_PE = r"""【输出】只输出一个 JSON 对象，不要解释或 markdo
  "target": "这一轮推向的关键片段编号，如 K04；没有就写 \"\"",
  "cards_done": ["这一轮真正演出来的关键片段编号，可为空"],
  "progress": 0-3（这一轮推进了多少：新信息、关系变化、换场各算一分）,
+ "news": ["这一轮观众新知道或新看到的事（V2.9），2–3 条，每条不超过 20 字"],
+ "he_move": "不超过 30 字：Rafael 这一轮主动做了什么、推向哪里（V2.9）",
  "three_q": {"conflict": "不超过 20 字", "suspense": "不超过 20 字：观众等的那个答案", "image": "不超过 20 字", "turn": "不超过 20 字：他的反应偏离了她的什么预料", "subtext": "不超过 20 字：嘴上说的 vs 动作漏出的", "stakes": "不超过 20 字：看得见的赌注，没有写无", "knows": "担心 / 追查 / 意外", "choice": "不超过 20 字：A、B 各自的代价，日常推进写无"},
  "seg1": [["中文动作", "English line 或空", "镜头", "说话人（Rafael / 她 / 配角名 / 画外:某某）"], ...],
  "hold": "中文：第 1 段最后停住的画面",
@@ -363,7 +388,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         if h.get('ask'): t += f"；她要的「{h['ask']}」{'已兑现' if h.get('delivered') else '没有兑现'}"
         return t
     hist = '\n'.join(line(i, h) for i, h in enumerate(history)) or '（还没有，这是开场之后的第 1 轮）'
-    n = len(history) + 1
+    n = sum(int(h.get('span') or 1) if isinstance(h, dict) else 1 for h in history) + 1  # V3.3：换线带来的前情算作之前演过的轮数（span），关键片段到期不因切线往后推
     pace = f"当前地点：{place or 'Rafael 的卧室'}，在这里已经演了 {place_rounds} 轮。当前地点的 set：{set_now or OPEN_SET}（地点不变时 set 原样照抄）。"
     level = int((history[-1].get('intimacy') or 0) if history else 0)
     cont = dict(cont or {}, place=place)
@@ -390,7 +415,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
     elif place_rounds == 2: pace += '【场景时钟】这里已经演了 2 轮，这一轮的钩子要指向离开这里。'
     todo = [k for k in CARD_DUE if k not in done]
     must_card = None
-    lead = kind == 'free' or any(h.get('input_type') == 'direction' for h in history[-2:])  # V1.4：她自己打字，或最近两轮她在推自己的情节，资料包让位（含糊的打字由导演层判成 vague 后仍走兜底卡）
+    lead = kind == 'free' or any(h.get('kind') == 'free' and h.get('input_type') == 'direction' for h in history[-2:])  # V2.9（Vicky 11-03）：只算她自己打字推的情节，点选项是主线的一步，不让资料包让位。V1.4：她自己打字，或最近两轮她在推自己的情节，资料包让位（含糊的打字由导演层判成 vague 后仍走兜底卡）
     if todo:
         k = todo[0]; late = n - CARD_DUE[k]
         c = CARDS.get(k, {})
@@ -405,6 +430,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
             else: pace += '，还没到推荐轮次：跟她走，question 也要“答一句，推一步”。'
     else:
         pace += '\n资料包里的关键片段都演过了：用 K13 留下的悬念开新的一段，按同样节奏推进。'
+    if kind != 'free': pace += '\n【她点的是选项】选项是主线的一步（V2.9）：1–2 拍兑现，接着 Rafael 主动推进主线，按关键片段时钟往前走；news 至少两条，最后停在一件新的事上。选项里写了几步，这一轮就把几步都演完（第 1 段做完第一步，第 2 段做完后面的步并接着推进），不留到下一轮（V3.0）。'
     kissed = any(h.get('kiss') for h in history)
     must_kiss = (not kissed) and n >= 12
     if not kissed and n >= 9: pace += f"\n【吻戏时钟】这一集还没有吻戏（第 {n} 轮）：" + ('这一轮必须演出来，除非她这一句是明确的别的方向，或她已经拒绝过他、说过不要亲密。' if must_kiss else '情绪积累到了就让吻发生；没到也要让下一轮的选项至少有一个直接走向吻。')
@@ -436,7 +462,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         if attempt == 0 and intimate and sp.get('scene_changed') and not re.search('去|走|回|出门|离开|换|到|阳台|车|楼下|外面|浴室|厨房|客厅|卧室|床|家', text or ''):  # V1.8：亲密进行中自己换了场（第 8、12 轮跑去阳台），这条值得多等一次
             first_bad = ['亲密进行中不换场']; msgs = msgs + [{'role': 'assistant', 'content': txt}, {'role': 'user', 'content': '她没有说要换地方：亲密进行中不换场、不打断。scene_changed 改成 false，就在当前地点继续往下演，其余按原来的规则，重新输出完整 JSON。'}]
             continue
-        bad = lint(sp, m, dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or ''))
+        bad = lint(sp, m, dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, kind=kind, done=list(done), seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or ''))
         if attempt == 0: first_bad = bad
         hard = [x for x in bad if x.startswith('【必改】')]
         if attempt == 0 and hard:  # V2.0：意图和状态连续错了比多等 10 秒更伤，这两类打回一次
@@ -450,13 +476,13 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
             room = lambda t: (re.search('卧室|客厅|厨房|阳台|浴室|书房|车|酒吧|车库|走廊|大堂|露台|屋顶', t) or [''])[0]
             if _sim(k, str(sp.get('location') or '')) >= 0.6 and room(k) == room(str(sp.get('location') or '')): sp['location'] = k; sp['set'] = v; break  # 要是同一种房间（“公寓卧室”和“公寓客厅”相似度也有 0.67）
     settle_ride(sp, cont, set_now); settle_walk(sp, set_now)
-    ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp); empty_first(sp, set_now)
+    ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp); empty_first(sp, set_now); cast_out_of_seg1(sp); seg1_wide(sp)
     settle_wardrobe(sp, wardrobe, text, set_now, cont.get('posture') or '', cont.get('outfits') or ()); settle_state(sp, cont, wardrobe, text); clean_zh(sp)
-    ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or '')
+    ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, kind=kind, done=list(done), seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or '')
     sp['lint_left'] = lint(sp, m, ctx)  # V1.5：修完还剩的问题只记录，不再为选项单独调一次导演层
     sp['lint_first'] = first_bad
     sp['director_attempts'] = attempt + 1
-    roles = {'5+10': (['回应她的话'], ['演绎', '引出钩子']), '5+15': (['回应她的话'], ['演绎', '引出钩子']), '10+10': (['回应她的话', '演绎（前半）'], ['演绎（后半）', '引出钩子'])}[m]
+    roles = {'5+10': (['回应她的话'], ['演绎', '引出钩子']), '5+15': (['回应她的话'], ['演绎', '引出钩子']), '15+15': (['回应她的话', '演绎'], ['后果和新变数', '引出钩子']), '10+10': (['回应她的话', '演绎（前半）'], ['演绎（后半）', '引出钩子'])}[m]
     sp['roles'] = {'seg1': roles[0], 'seg2': roles[1]}
     sp['director_model'] = MODEL; sp['usage'] = usage
     return sp, round(time.time() - t0, 1)
@@ -483,6 +509,12 @@ def _beats(sp):
 
 
 LOCK_MODES = ('10+10',)  # V0.17：这些 mode 的第 1 段用首尾帧锁（live_common.SEG1_LOCK 同步）
+
+
+def line_cap(mode, k):
+    """每段台词上限：15 秒的段 5 句，5、10 秒的段 3 句（V3.0；V2.8 是 3、2）。"""
+    d = (L.MODES.get(mode) or (5, 15))[0 if k == 'seg1' else 1]
+    return 5 if d >= 15 else 3  # V3.0（Vicky 11-04：内容太少）：15 秒的段 5 句，5、10 秒的段 3 句
 
 
 PROP_WORDS = ('三明治', '早餐', '头盔', '扳手', '工具', '工单', '杯子', '酒杯', '水杯', '茶杯', '咖啡', '一杯', '酒瓶', '瓶子', '红酒', '威士忌', '香槟', '信封', '一封信', '纸条', '文件', '契约', '婚约书', '文书', '钥匙', '花束', '玫瑰', '雨伞', '伞', '毯子', '围巾', '手帕', '书本', '一本书', '照片', '相框', '戒指', '项链', '盒子', '礼盒', '包裹', '手包', '蜡烛', '药', '外卖', '食物', '餐盘', '刀', '枪', '手电')
@@ -518,6 +550,13 @@ def lint(sp, mode, ctx=None):
     if ctx.get('must_scene') and not sp.get('scene_changed') and it != 'direction':
         bad.append(f"【必改】这个地点已经演了 {ctx.get('place_rounds')} 轮，她这一句不是明确引导（{it}），这一轮必须换场（scene_changed=true，用动作切到新地点）")
     mc = ctx.get('must_card')
+    got = [str(k).strip().upper() for k in (sp.get('cards_done') or [])]
+    if mc and ctx.get('kind') not in (None, 'free') and mc not in got:  # V3.2（Vicky 11-04：剧情推进慢，要引导到主线）：她点的是选项、到期的卡就要演，可以和她选的事接在一起；原来只在她含糊时才强制，点选项一直不算
+        bad.append(f'【必改】她点的是选项，关键片段 {mc}（{CARDS.get(mc, {}).get("role", "")[:40]}）已经到期：这一轮把它的核心事件演出来（和她选的事接在一起），写进 cards_done')
+    left_cards = [k for k in CARD_DUE if k not in (ctx.get('done') or []) and k not in got]
+    if left_cards and CARD_DUE[left_cards[0]] <= (ctx.get('n') or 0) + 1:  # V3.2：下一轮到期的卡，至少一个选项要通向它
+        k2 = left_cards[0]; lt = ' '.join(str(((sp.get('next') or {}).get(x) or {}).get('leads_to', '')) for x in ('A', 'B'))
+        if k2 not in lt.upper(): bad.append(f'【必改】下一轮该演关键片段 {k2}（{CARDS.get(k2, {}).get("role", "")[:40]}）：两个选项里至少一个通向它，leads_to 写上 {k2}')
     if mc and (it == 'vague' or (it == 'question' and ctx.get('stall', 0) >= 2)) and mc not in [str(k).strip().upper() for k in (sp.get('cards_done') or [])]:
         bad.append(f'她这一句是 {it}，关键片段 {mc} 已经到期：这一轮必须把 {mc} 的核心事件演出来，并写进 cards_done')
     said = (ctx.get('her_said') or '').lower()
@@ -538,11 +577,29 @@ def lint(sp, mode, ctx=None):
     for k in ('A', 'B'):
         o = (sp.get('next') or {}).get(k) or {}; zh = o.get('zh', '')
         if zh.rstrip().endswith(('？', '?')): bad.append(f'选项 {k}「{zh}」是提问：选项必须是推动剧情的行动或决定')
-        if any(w in zh for w in STALL): bad.append(f'选项 {k}「{zh}」在原地拉扯：选项必须让下一件关键的事发生')
+        if any(w in zh for w in STALL) and len('，'.join(x for x in re.split('[，,：:]', zh) if x and not any(w in x for w in STALL))) < 10: bad.append(f'选项 {k}「{zh}」在原地拉扯：选项必须让下一件关键的事发生')  # V2.9：有动作的对质（拿着卡去找他、要他当着诺拉说）不算拉扯
         if not o.get('leads_to'): bad.append(f'选项 {k} 没写 leads_to（选了它下一轮会发生什么）')
         old = [x for x in (ctx.get('prev_opts') or []) if x and _sim(x, zh) >= 0.6]
         if old: bad.append(f'选项 {k}「{zh}」和上一轮的选项「{old[0]}」几乎一样：她上一轮没选它，换一个能让新的事发生的行动')
         if any(w in zh for w in ('外套', '领带', '手表', '手机', '相机')): bad.append(f'选项 {k}「{zh}」用了他的衣物或道具：选项写她的行动，不碰他的外套、领带、手表，也不拿杯子、水、手机')
+    for k in ('A', 'B'):  # V2.9（Vicky 11-03）：选项是剧情走向的关键引导，不出杂事和小指令
+        zh = str(((sp.get('next') or {}).get(k) or {}).get('zh', ''))
+        if zh and (len(zh) < 12 or TRIVIAL_OPT.search(zh)): bad.append(f'【必改】选项 {k}「{zh}」是杂事或小指令，或者太短：每个选项是打开一段新剧情的 2–3 步小计划（一张关键片段卡、一个秘密、关系的一次变化、新地点、和人对质），中文 14–36 字（V3.0）')
+    slow = int(sp.get('intimacy') or 0) >= 2 or sp.get('kiss')
+    news = [x for x in (sp.get('news') or []) if str(x).strip()]
+    if len(news) < 2 and not slow: bad.append('【必改】news 不到两条：这一轮信息太少。她要的事 1–2 拍做完，接着他主动推进主线，带出至少两样新信息或新事件（V2.9）')
+    if not str(sp.get('he_move') or '').strip(): bad.append('没写 he_move：他这一轮主动做了什么推进主线（V2.9）')
+    waits = [str(b[0])[:24] for b in allb if WAIT_BEAT.search(str(b[0]))] + ([str(sp.get('hold'))[:24]] if WAIT_BEAT.search(str(sp.get('hold') or '')) else [])
+    if waits: bad.append(f"【必改】有“等她决定/等她指路”这类让出主动权的拍子（{'；'.join(waits[:2])}）：换成他主动做的一件事或一件新发生的事（V2.9）")
+    cut1 = [str(b[0])[:20] for b in sp.get('seg1', []) if re.search('切到|已站在.{0,6}(套房|天台|吧台|海滩|泳池)', str(b[0]))]  # V3.2：第 1 段在原地，换场只从第 2 段开始（S00395099c 第 2 轮第 1 段中途切到套房，又漂回泳池）
+    if cut1: bad.append(f"【必改】第 1 段里换了地点（{'；'.join(cut1[:2])}）：第 1 段留在原地，换场放到第 2 段第一拍的空镜")
+    fill = [str(b[0])[:20] for b in allb if is_filler(b)]  # V3.0（Vicky 11-04：一个动作拖很久、有定格感）：没有台词只有表情的拍子整轮最多一拍
+    if len(fill) > 1 and not slow: bad.append(f"【必改】有 {len(fill)} 拍只有表情没有台词和动作（{'；'.join(fill[:3])}）：整轮最多一拍，其余改成一句台词或一个推动剧情的动作（V3.0）")
+    stall = [str(b[1])[:40] for b in allb if len(b) > 1 and STALL_LINE.search(str(b[1]))]
+    if stall: bad.append(f"【必改】台词在拖延（{'；'.join(stall[:2])}）：不把事情往后推，同一拍里给出一样具体的东西——线索、动作、条件或赌约（V3.0）")
+    for k in ('seg1', 'seg2'):  # V3.0：15 秒的段至少 3 句台词（吻戏、骑行这类重头戏除外）
+        d = (L.MODES.get(mode) or (5, 15))[0 if k == 'seg1' else 1]; n = sum(1 for b in sp.get(k, []) if len(b) > 1 and str(b[1]).strip())
+        if d >= 15 and n < 3 and not slow and not sp.get('song'): bad.append(f'【必改】{k} 是 15 秒，只有 {n} 句台词：15 秒的段 3–5 句（所有人合计），一句接一句把事情推进（V3.0）')
     na, nb = [((sp.get('next') or {}).get(k) or {}).get('zh', '') for k in ('A', 'B')]
     if na and nb and _sim(na, nb) >= 0.5: bad.append(f'两个选项「{na}」「{nb}」几乎一样：A、B 要走向不同的方向（例如一个更靠近他、一个去做别的事或去别处）')
     if any('切到' in b[0] for b in sp.get('seg1', [])): bad.append('seg1 里换了地点：两段都从同一张首帧出发，换场、走动、变身都放在 seg2')
@@ -571,7 +628,8 @@ def lint(sp, mode, ctx=None):
     if ctx.get('must_kiss') and it != 'direction' and not sp.get('kiss'): bad.append(f"已经第 {ctx.get('n')} 轮还没有吻戏：她这一句不是明确的别的方向，这一轮把吻戏演出来（kiss=true，按【可拍的写法：吻戏】）")
     for k in ('seg1', 'seg2'):
         lines = [b[1] for b in sp.get(k, []) if b[1]]
-        if len(lines) > 2: bad.append(f'{k} 有 {len(lines)} 句台词，每段最多 2 句（所有人合计）')
+        cap = line_cap(mode, k)
+        if len(lines) > cap: bad.append(f'{k} 有 {len(lines)} 句台词，这一段最多 {cap} 句（所有人合计）')
         for l in lines:
             if len(l.split()) > 12: bad.append(f'台词太长（{len(l.split())} 个词，最多 10 个）：{l}')
     text = json.dumps([sp.get('seg1'), sp.get('seg2'), sp.get('hold'), sp.get('her_hands'), sp.get('set')], ensure_ascii=False)  # set 也查：v0.15 的会议厅 set 写了“带爪痕纹样的旗”
@@ -580,6 +638,8 @@ def lint(sp, mode, ctx=None):
     if any(c not in L.CAST for c in (sp.get('cast') or [])): bad.append('cast 里只能写 Evan、Maya、Cole、Ryan，其他人写 extras')
     def on_screen(b): return any((len(b) > 3 and b[3] == c) or (c in b[0] and not any(w in b[0] for w in ('声音', '门外', '画外', '电话'))) for c in L.CAST)
     if any(on_screen(b) for b in sp.get('seg1', [])): bad.append('配角只能出现在 seg2，seg1 里最多是画外声音（说话人写“画外:Maya”这种）')
+    crowd = [str(b[0])[:24] for b in sp.get('seg2', []) if sum(1 for c in L.CAST if c in str(b[0])) >= 2]  # V3.0：两个配角写在同一拍，模型会把其中一个画成两个（S235751ee5 第 3 轮 Mei 和 Sloane 同框，出现两个 Mei）
+    if crowd: bad.append(f"【必改】有一拍里同时写了两个配角（{'；'.join(crowd[:2])}）：配角一个一个拍，每拍最多一个配角，和她或他同框可以")
     if sp.get('cast') and any(w in b[0] for b in sp.get('seg1', []) for w in ('门外', '门口', '看向门', '转向门')): bad.append('有配角的这一轮，seg1 只拍 Rafael 和她两个人，不写门外、门口（模型会在门口补人）')
     her_lines = [b for k in ('seg1', 'seg2') for b in sp.get(k, []) if len(b) > 3 and b[3] == '她' and b[1]]
     if len(her_lines) > 1: bad.append(f'她每轮最多说一句（现在 {len(her_lines)} 句）')
@@ -589,6 +649,9 @@ def lint(sp, mode, ctx=None):
     return bad
 
 
+TRIVIAL_OPT = re.compile('浇水|浇花|洒他|朝他.{0,3}洒|挂在这|挂到这|指向|指给他|递给他|看一眼|走近一点|靠近一点|站到|擦干|收拾一下')  # V2.9
+STALL_LINE = re.compile(r"(?i)ask me (again )?(tomorrow|later|another time)|tomorrow\.?$|not (now|tonight|yet)\.?$|that'?s all i can say|later\.?$|some other time|以后(再|告诉)|明天再|现在不行|就这些")  # V3.0：把事情往后推的台词
+WAIT_BEAT = re.compile('等她(决定|回答|开口|指路|下一步|点头|回应|说话|发话)|等着她(决定|回答|开口|指路|发话)|等她的(回应|答复|决定)|等她来定')  # V2.9：把主动权让回去的拍子
 STALL = ('问他', '问问', '问那', '要他说', '现在就说', '要他回答', '要个说法', '逼问', '质问', '追问', '说清楚', '问清楚', '讲清楚', '说出全部', '告诉我', '全部告诉', '解释清楚', '缓缓', '缓一缓', '等等', '先别', '想想', '冷静', '站在原地', '留在原地', '不动', '犹豫', '再说', '解释')
 
 
@@ -597,6 +660,37 @@ def _drop_clause(text, w):
     parts = re.split(r'(?<=[，；。,;])', text)
     keep = [p for p in parts if w not in p]
     return ''.join(keep).strip('，；,; ')
+
+
+def seg1_wide(sp):
+    """V3.2：第 1 段没有身份参考图（首帧续接），单人近景、特写最容易换脸（S00395099c 第 2、5 轮她的近景变成另一个人），改成双人中近景。"""
+    n = 0
+    for b in sp.get('seg1') or []:
+        if re.search('单人(中近景|近景)|特写', str(b[2])) and not str(b[2]).startswith('插入'): b[2] = re.sub('单人(中近景|近景)|(大)?特写', '双人中近景', str(b[2]), count=1); n += 1
+    if n: sp['seg1_widened'] = n
+
+
+def cast_out_of_seg1(sp):
+    """V3.0：配角正面出镜的拍子从第 1 段挪到第 2 段开头（第 1 段没有配角的参考图）。打回两次还没改掉时由代码兜底：三真四假 S235751ee5 第 1 轮 Mei、Sloane 写在第 1 段，Mei 穿成黑裙、Sloane 变成两个穿粉色和亮片的女人，夜空也变成了黄昏。"""
+    s1, s2 = sp.get('seg1') or [], sp.get('seg2') or []
+    def on(b): return any((len(b) > 3 and b[3] == c) or (c in str(b[0]) and not any(w in str(b[0]) for w in ('声音', '门外', '画外', '电话'))) for c in L.CAST)
+    idx = [i for i, b in enumerate(s1) if on(b)]
+    if not idx or len(s1) - len(idx) < 1: return
+    if s2 and str(s2[0][2]).startswith('空镜'):  # 这一轮换场：挪到第 2 段会落在新地点里，改成第 1 段的画外声音（台词留着，画面里不多画人）
+        for i in idx:
+            b = s1[i]; who = b[3] if len(b) > 3 and b[3] in L.CAST else next((c for c in L.CAST if c in str(b[0])), '')
+            b[0] = f'画外传来 {who} 的声音，Rafael 和她同时转头看向画外' if b[1] else f'Rafael 和她同时转头看向画外，又转回来看着对方'
+            if len(b) > 3: b[3] = f'画外:{who}' if b[1] else ''
+        sp['cast_voiced'] = len(idx); return
+    z = sp.get('zh') if isinstance(sp.get('zh'), dict) else {}
+    z1, z2 = z.get('seg1') if isinstance(z.get('seg1'), list) else None, z.get('seg2') if isinstance(z.get('seg2'), list) else None
+    moved = [s1[i] for i in idx]; mz = [z1[i] if z1 and i < len(z1) else '' for i in idx]
+    for i in reversed(idx):
+        s1.pop(i)
+        if z1 and i < len(z1): z1.pop(i)
+    s2[0:0] = moved
+    if z2 is not None: z2[0:0] = mz
+    sp['cast_moved'] = [str(b[0])[:20] for b in moved]
 
 
 def autofix(sp, bad, set_now=None):
@@ -650,13 +744,13 @@ def trim(sp, mode, bad):
     for k in ('A', 'B'):
         o = (sp.get('next') or {}).get(k) or {}
         parts = [x for x in _re.split('[，,：:]', o.get('zh', '')) if x and not any(w in x for w in STALL)]
-        if parts and parts != [o.get('zh')]: o['zh'] = '，'.join(parts).rstrip('？?'); o['trimmed'] = True
+        if parts and parts != [o.get('zh')] and len('，'.join(parts)) >= 10: o['zh'] = '，'.join(parts).rstrip('？?'); o['trimmed'] = True  # V2.9：删完不到 10 个字就不删（“我走到诺拉面前”成了杂事选项）
     for k in ('seg1', 'seg2'):
         n = 0
         for b in sp.get(k, []):
             if b[1]:
                 n += 1
-                if n > 2: b[1] = ''
+                if n > line_cap(mode, k): b[1] = ''
                 elif len(b[1].split()) > 12: b[1] = ' '.join(b[1].split()[:10]).rstrip(',') + '.'
         z = (sp.get('zh') or {}).get(k)
         if isinstance(z, list): sp['zh'][k] = [z[i] if i < len(z) and sp[k][i][1] else '' for i in range(len(sp[k]))]
@@ -771,13 +865,17 @@ def settle_song(sp, text):
 
 
 def route_mode(sp, mode, text=''):
-    """V2.3（Vicky：优先 5+15，末尾没什么表达才用 5+10）：吻戏、唱歌、亲密、配角、骑行一定 5+15；其余先删掉没有表达的拍子，删完不超过 4 拍就 5+10。"""
+    """V2.8（Vicky 11-03：15+15 和 5+10、5+15 并列，优先 15+15）：导演层默认写 15+15，第 1 段 3 拍以上就走 15+15；第 1 段只有 1–2 拍、10 个词以内的简短回答才走 5+x：吻戏、唱歌、亲密、配角、骑行 5+15，其余删掉没有表达的拍子后不超过 4 拍就 5+10。"""
     sp['seg2'] = [list(b) + [''] * (4 - len(b)) for b in (sp.get('seg2') or [])]
     settle_song(sp, text)
     if mode != 'auto': return mode
     ride = sum(1 for b in sp['seg2'] if re.search('行驶|骑行|疾驰|飞驰', str(b[0]))) >= 2
     heavy = [k for k, v in (('亲密', int(sp.get('intimacy') or 0) >= 2), ('吻戏', sp.get('kiss')), ('唱歌', sp.get('song')), ('配角', sp.get('cast')), ('其他角色', sp.get('extras')), ('行进', ride)) if v]
     want = str(sp.get('dur_mode') or '').strip()
+    seg1 = sp.get('seg1') or []
+    w1 = sum(len(re.findall(r"[A-Za-z0-9'’-]+", str(b[1]))) for b in seg1 if isinstance(b, (list, tuple)) and len(b) > 1)
+    sp['dur_want'] = want or '15+15'
+    if (want not in ('5+10', '5+15') and len(seg1) >= 2) or len(seg1) >= 3 or w1 > 10: return '15+15'  # V2.9：第 1 段只有 1 拍时 15 秒装不满（Rafael 干跑 seg1=1 整轮失败），走 5+x  # V2.8（Vicky 11-03）：默认 15+15；导演没写 5+x，或第 1 段 3 拍以上、超过 10 个词（5 秒装不下）都走 15+15
     if heavy:
         if want == '5+10': sp['dur_upgraded'] = heavy
         return '5+15'
@@ -1061,6 +1159,9 @@ def settle_wardrobe(sp, prev, asked='', set_now=None, posture='', outfits=()):
     if NUDE_SHE.search(str(end.get('she') or '')): sp['nude_cut'] = end.get('she'); end['she'] = start.get('she') or L.SHE_DEFAULT
     if NUDE_HE.search(str(end.get('he') or '')): sp['nude_cut'] = end.get('he'); end['he'] = start.get('he') or L.HE_DEFAULT
     if end != start and not want and not WEAR_ACT.search(text) and not TIME_SKIP.search(text): sp['wardrobe_reverted'] = end; end = dict(start)
+    if not want and end.get('she') != start.get('she') and not (start.get('she') and end.get('she') and L.LOOK_OUTER in str(start.get('she')) and L.LOOK_OUTER not in str(end.get('she'))):  # V3.2：她的衣服只在她自己要换时才换（S00395099c 第 5 轮男主一句“Go change”就给她换成深蓝长裙，脸也跟着变了）；脱掉最外面一层除外
+        sp['she_wear_reverted'] = end.get('she'); end['she'] = start.get('she')
+        if not end.get('she'): end.pop('she', None)
     if end.get('she'): end['she'] = end['she'].replace('奶油色和黑色条纹针织上衣', HER_TOP) if HER_TOP else end['she']  # V2.2：写死款式（只写“条纹针织上衣”，关键帧画成带领短袖 POLO，之后一路带下去）
     if not want and redress(sp, start, asked, set_now, posture): end = {}
     settle_change(sp, start, end)
@@ -1089,9 +1190,12 @@ def clean_zh(sp):
 
 
 def _shape(sp, mode):
-    r1, r2 = ((1, 2), (2, 7)) if mode in ('5+10', '5+15') else ((1, 3), (2, 7))  # 10+10 第 1 段允许一个长镜头
+    r1, r2 = ((1, 2), (2, 8)) if mode in ('5+10', '5+15') else ((2, 7), (2, 8)) if mode == '15+15' else ((1, 3), (2, 8))  # 10+10 第 1 段允许一个长镜头；15+15 第 1 段 2–7 拍；V3.0 第 2 段上限 8 拍
     if not (r1[0] <= len(sp.get('seg1', [])) <= r1[1]) or not (r2[0] <= len(sp.get('seg2', [])) <= r2[1]) or not sp.get('hold') or not sp.get('next'):
         raise ValueError(f'导演层 spec 不完整：seg1={len(sp.get("seg1", []))} seg2={len(sp.get("seg2", []))}')
+    nx = sp.get('next') if isinstance(sp.get('next'), dict) else {}
+    if not all(isinstance(nx.get(k), dict) and (nx[k].get('zh') or nx[k].get('en')) for k in ('A', 'B')):  # 11-04：模型偶尔把 B 漏掉、把 leads_to 写到外层，这一轮生成完才在预写选项时报错 'B'，整轮作废
+        raise ValueError('next 要有 A、B 两个选项，各自带 zh、en、leads_to')
     for k in ('seg1', 'seg2'):
         sp[k] = [list(b) + [''] * (4 - len(b)) for b in sp[k]]
         for b in sp[k]:
@@ -1108,13 +1212,14 @@ def _shape(sp, mode):
             if str(b[2]).startswith('单人') and re.search(r'松开|握住|牵|扣着|碰|抚|摸|搭|贴|拉住|手腕|她的手|他的手', b[0]):
                 b[2] = '双人近景，' + (str(b[2]).split('，', 1)[1] if '，' in str(b[2]) else '固定')
     if mode == '10+10' and len(sp['seg1']) == 1:  # 10 秒只有一个镜头时模型自由发挥最多（v0.15 10+10 第 9 轮衬衫变灰）：补一个收住的近景
-        sp['seg1'].append(['两人看着对方，神情不变，他等她的回应', '', '双人近景，固定', ''])
+        sp['seg1'].append(['两人看着对方，神情不变', '', '双人近景，固定', ''])
         if isinstance((sp.get('zh') or {}).get('seg1'), list): sp['zh']['seg1'].append('')
     sp['cast'] = [c for c in (sp.get('cast') or []) if c in L.CAST]
 
 
 def _call(msgs, timeout):
-    body = {'model': MODEL, 'max_tokens': 3800, 'reasoning': {'effort': 'low'}, 'temperature': 0.7, 'messages': msgs}
+    body = {'model': MODEL, 'max_tokens': 6400,  # V2.9：多了 news、he_move，选项更长，3800 会截断；11-04 三真四假 5200 截断过一次，加到 6400
+            'reasoning': {'effort': 'low'}, 'temperature': 0.7, 'messages': msgs}
     body['provider'] = {'order': ['Anthropic'], 'allow_fallbacks': True}  # V1.5b 提速：直连 Anthropic 约快一倍（同一份输入 11.6 秒 vs AWS 22 秒）
     req = U.Request('https://openrouter.ai/api/v1/chat/completions', data=json.dumps(body).encode(),
                     headers={'Authorization': 'Bearer ' + _key(), 'Content-Type': 'application/json',

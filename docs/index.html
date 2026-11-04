@@ -54,7 +54,8 @@ body.choosing #bar,body.ended #bar,body.start #bar{display:none}
 /* choice sheet */
 #sheet{position:absolute;left:0;right:0;bottom:0;z-index:7;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px;transform:translateY(12px);opacity:0;transition:opacity .35s ease,transform .35s ease;pointer-events:none}
 #sheet.show{opacity:1;transform:none;pointer-events:auto}
-.cue{font-size:12px;letter-spacing:.06em;color:var(--mute);text-align:center;font-style:italic;padding-bottom:2px}
+#sheet::before{content:"";position:absolute;left:0;right:0;bottom:0;top:-56px;z-index:-1;background:linear-gradient(to bottom,rgba(4,5,7,0),rgba(4,5,7,.72) 64px,rgba(4,5,7,.9));pointer-events:none}
+.cue{font-size:12px;letter-spacing:.06em;color:#d9dde3;text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 10px rgba(0,0,0,.7);text-align:center;font-style:italic;padding-bottom:2px}
 .cue .zh{font-family:var(--zh);font-style:normal;display:block;margin-top:2px}
 .opt{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px;min-height:56px;padding:11px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(12,14,18,.84);cursor:pointer;transition:border-color .2s,background .2s,transform .12s}
 .opt:hover{border-color:var(--gold)}
@@ -108,7 +109,7 @@ body.lang-en .zh{display:none!important}
 #liveWait .t{font-family:var(--display);font-size:44px;color:#f3eee2;font-variant-numeric:tabular-nums}
 #liveWait .s{font-size:13px;color:#d4d7dc;max-width:30ch}
 #liveWait .her{font-size:13px;color:var(--gold);font-style:italic;max-width:30ch}
-.rno{font-size:11px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;text-align:center;display:flex;justify-content:center;align-items:center;gap:10px}
+.rno{font-size:11px;letter-spacing:.16em;color:#cfd3d9;text-shadow:0 1px 3px rgba(0,0,0,.95);text-transform:uppercase;text-align:center;display:flex;justify-content:center;align-items:center;gap:10px}
 #replayBtn{background:none;border:1px solid rgba(255,255,255,.22);border-radius:999px;color:#e8e8e8;font-size:11px;letter-spacing:.04em;padding:3px 10px;cursor:pointer}
 </style>
 <div id="stage">

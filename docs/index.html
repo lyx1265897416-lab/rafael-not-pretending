@@ -56,7 +56,7 @@ body.choosing #bar,body.ended #bar,body.start #bar{display:none}
 #sheet.show{opacity:1;transform:none;pointer-events:auto}
 .cue{font-size:12px;letter-spacing:.06em;color:var(--mute);text-align:center;font-style:italic;padding-bottom:2px}
 .cue .zh{font-family:var(--zh);font-style:normal;display:block;margin-top:2px}
-.opt{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px;min-height:56px;padding:11px 16px;border-radius:14px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;transition:border-color .2s,background .2s,transform .12s}
+.opt{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px;min-height:56px;padding:11px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(12,14,18,.84);cursor:pointer;transition:border-color .2s,background .2s,transform .12s}
 .opt:hover{border-color:var(--gold)}
 .opt:active{transform:scale(.985)}
 .opt .en{font-size:15px;font-weight:500;color:#f4efe4;line-height:1.3}
@@ -72,7 +72,7 @@ body.choosing #bar,body.ended #bar,body.start #bar{display:none}
 /* start + end cards */
 .card{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end;gap:16px;padding:calc(40px + env(safe-area-inset-top,0px)) max(22px,env(safe-area-inset-right,0px)) calc(30px + env(safe-area-inset-bottom,0px)) max(22px,env(safe-area-inset-left,0px));background:linear-gradient(to bottom,rgba(4,5,7,.15),rgba(4,5,7,.25) 35%,rgba(4,5,7,.92) 72%)}
 .card[hidden]{display:none!important}
-#endCard{background:linear-gradient(to bottom,rgba(4,5,7,.55),rgba(4,5,7,.88) 30%,rgba(4,5,7,.96));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);justify-content:center}
+#endCard{background:linear-gradient(to bottom,rgba(4,5,7,.55),rgba(4,5,7,.88) 30%,rgba(4,5,7,.96));justify-content:center}
 .kicker{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold)}
 .card h1{font-family:var(--display);font-weight:400;font-size:clamp(34px,10vw,46px);line-height:1.02;margin:0;color:#f6f1e6;letter-spacing:.02em;text-wrap:balance}
 .card h1 em{font-style:normal;color:var(--gold)}
@@ -104,7 +104,7 @@ body.lang-en .zh{display:none!important}
 <style>
 #liveChip{position:absolute;z-index:6;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));top:calc(58px + env(safe-area-inset-top,0px));font-size:11.5px;line-height:1.45;color:#cfd3d9;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 10px}
 #liveChip b{color:var(--gold);font-weight:600}
-#liveWait{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(4,5,7,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);text-align:center;padding:0 24px}
+#liveWait{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(4,5,7,.7);text-align:center;padding:0 24px}
 #liveWait .t{font-family:var(--display);font-size:44px;color:#f3eee2;font-variant-numeric:tabular-nums}
 #liveWait .s{font-size:13px;color:#d4d7dc;max-width:30ch}
 #liveWait .her{font-size:13px;color:var(--gold);font-style:italic;max-width:30ch}
@@ -146,7 +146,7 @@ body.lang-en .zh{display:none!important}
   </section>
   <div id="toast" hidden></div>
 </div>
-<script src="rt-player.js?v=3"></script>
+<script src="rt-player.js?v=5"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -186,7 +186,9 @@ $('stage').style.background = '#000 url(media/poster.jpg?v=d3) center/cover';
 const chip = $('liveChip'); const setChip = h => { chip.innerHTML = h; chip.hidden = !h; };
 function toast(t){ const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2200); }
 const subs = $('subs');
-function showSub(c, who){ if (!c){ subs.innerHTML = ''; subs.classList.remove('you'); return; } subs.classList.toggle('you', who === 'you');
+let subKey = null;  // 只在字幕变了才写页面：timeupdate 每秒触发好几次，每次重写会和视频抢主线程
+function showSub(c, who){ const key = c ? (who || '') + '|' + (c.en || '') + '|' + (c.zh || '') : ''; if (key === subKey) return; subKey = key;
+  if (!c){ subs.innerHTML = ''; subs.classList.remove('you'); return; } subs.classList.toggle('you', who === 'you');
   subs.innerHTML = (who ? `<div class="who">${who === 'you' ? 'You' : esc(who)}</div>` : '') + (c.en ? `<div class="en">${esc(c.en)}</div>` : '') + (c.zh ? `<div class="zh">${esc(c.zh)}</div>` : ''); }
 function placeSubs(){ subs.style.bottom = document.body.classList.contains('choosing') ? ($('sheet').offsetHeight + 14) + 'px' : ''; }
 addEventListener('resize', placeSubs);
@@ -203,8 +205,22 @@ async function api(path, body){ await relayReady; const r = await fetch(API + pa
   .catch(e => setChip(e.message === 'nokey' ? '<b>Preview</b> · opening only; live scenes need the test link with a key' : '<b>Live generation offline</b> · the relay on the Mac is not reachable right now'));
 
 // 开场
-const ov = pool[1]; load(ov, SRC('media/OPEN.mp4')); const idle = pool[2]; load(idle, SRC('media/IDLE0.mp4'), true);
-if (PAGES) [[ov, 'media/OPEN.mp4'], [idle, 'media/IDLE0.mp4']].forEach(([v, p]) => v.addEventListener('error', () => { if (!v.src.endsWith(p)) { v.src = p; v.load(); } }));
+// 开场 101 秒：Pages 上走分段（media/open/，单文件 + 字节范围，一次只取几秒）。整部 26 MB 的 mp4 会被浏览器尽量往前下载，代理网络下把同一条连接堵住，开场一卡一卡，发送和轮询也跟着排队
+const ov = pool[1];
+function attachOpen(){
+  const plain = () => load(ov, SRC('media/OPEN.mp4'));
+  if (!PAGES) return plain();
+  const HLS = 'media/open/i.m3u8';
+  if (!window.MediaSource && !window.ManagedMediaSource){ ov.addEventListener('error', plain, {once: true}); ov.src = HLS; ov.load(); return; }  // iPhone 没有 MSE，系统自己按分段播
+  const el = document.createElement('script'); el.src = 'vendor/hls.light.min.js';
+  el.onload = () => { const H = window.Hls; if (!H || !H.isSupported()) return plain();
+    const h = new H({maxBufferLength: 20, maxMaxBufferLength: 30, backBufferLength: 20});
+    h.on(H.Events.ERROR, (_, e) => { if (e.fatal){ h.destroy(); plain(); } });  // 分段出错退回整部 mp4
+    h.loadSource(HLS); h.attachMedia(ov); };
+  el.onerror = plain; document.head.appendChild(el);
+}
+attachOpen(); const idle = pool[2]; load(idle, SRC('media/IDLE0.mp4'), true);
+if (PAGES) [[idle, 'media/IDLE0.mp4']].forEach(([v, p]) => v.addEventListener('error', () => { if (!v.src.endsWith(p)) { v.src = p; v.load(); } }));
 async function startSession(){ if (!K){ next = PREVIEW_NEXT; return; } const j = await api('/api/session', {mode: MODE}); sid = j.sid; next = j.next; round = 0; }
 $('startBtn').onclick = async () => {
   $('startCard').hidden = true; setMode('playing');
@@ -261,17 +277,19 @@ async function liveRound(kind, choice, said){
   try { rid = (await api('/api/round', {sid, kind, choice, input: kind === 'free' ? said.zh : undefined})).id; }
   catch (e){ $('liveWait').hidden = true; busy = false; setChip('<b>Not sent</b> · ' + esc(e.message)); toast(T('Live generation unavailable', '实时生成不可用')); openChoice(); if (kind === 'free') $('sayIn').value = said.zh; return; }
   const V = [spare()]; V[0].dataset.keep = 1; V.push(spare()); delete V[0].dataset.keep;
-  const poll = setInterval(async () => {
+  let polling = true;  // 一个请求回来再发下一个：隧道一来一回约 2 秒，定时每 0.5 秒发会叠出四五个请求，和视频抢网络；两段都出好就停
+  (async () => { while (polling && my === liveRun){
     try { r = await api(`/api/round/${rid}?k=${encodeURIComponent(K)}`); } catch (e) {}
     if (r && r.segs) r.segs.forEach((s, i) => { if (s.url && V[i].dataset.src !== s.url){ V[i].dataset.src = s.url; load(V[i], s.url); } });  // 一到就预载
-  }, 500);
+    if (r && (r.status === 'done' || r.status === 'error')) break;
+    await new Promise(res => setTimeout(res, 500)); } })();
   // V1.5 提速：第 1 段不等第 2 段出片——按第 2 段的预计出片时间（中转给的 eta_left）倒推开播，第 1 段播完正好接上第 2 段
   const LOCAL = location.hostname === '127.0.0.1', M = LOCAL ? 1.5 : 3.0;  // 轮询、隧道延迟和第 2 段从 Vivix CDN 缓冲的余量（秒）
   const segErr = () => r && r.segs && r.segs.some(s => s.status === 'error');
   const seg1Ok = () => r && r.segs && r.segs[0] && r.segs[0].url && V[0].dataset.src === r.segs[0].url && V[0].readyState >= 3;
   const seg2Soon = () => { const s2 = r.segs[1]; if (!s2 || s2.url) return true; const d1 = V[0].duration || r.segs[0].dur || 5; return s2.eta_left != null && s2.eta_left <= d1 - M - (s2.dur >= 15 ? 1.5 : 0); };
   await hold(null, () => (r && r.status === 'error') || segErr() || (seg1Ok() && seg2Soon()));
-  if (my !== liveRun){ clearInterval(poll); return; }
+  if (my !== liveRun){ polling = false; return; }
   const view = {};
   if (!segErr() && r.status !== 'error'){
     $('liveWait').hidden = true; waitMusic(false); setMode('playing');
@@ -283,7 +301,7 @@ async function liveRound(kind, choice, said){
     view.stall = (Date.now() - view.seg1_end) / 1000;
     if (my === liveRun && !segErr()){ RT.part(1); await play(1); RT.done('round:' + rid); }
   }
-  clearInterval(poll); view.end_at = Date.now(); $('liveWait').hidden = true;
+  polling = false; view.end_at = Date.now(); $('liveWait').hidden = true;
   if (rid) api(`/api/round/${rid}/view`, view).catch(() => {});
   const gen = r.segs && r.segs.every(s => s.ready_at) ? Math.max(...r.segs.map(s => s.ready_at - r.director_at)) / 1000 : null;
   const dir = r.director_at ? (r.director_at - r.at) / 1000 : null;

@@ -34,7 +34,7 @@
   const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5h4v15H6zM14 4.5h4v15h-4z"/></svg>';
   const RATES = [0.75, 1, 1.25, 1.5, 2];
   let drama = 'rt', zh = () => /^zh/i.test(navigator.language || ''), voices = () => [];
-  let cur = null, rate = 1, dragging = false, stage, bar, track, fill, knob, timeEl, labelEl, ppBtn, speedBtn, menu, pausedEl, hintEl, hintT;
+  let cur = null, rate = 1, base = 1, dragging = false, stage, bar, track, fill, knob, timeEl, labelEl, ppBtn, speedBtn, menu, pausedEl, hintEl, hintT;
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
@@ -52,9 +52,10 @@
   const total = () => cur ? cur.parts.reduce((a, p) => a + durOf(p), 0) : 0;
   const before = i => cur.parts.slice(0, i).reduce((a, p) => a + durOf(p), 0);
   const nowT = () => cur ? before(cur.i) + ((cur.parts[cur.i].v && cur.parts[cur.i].v.currentTime) || 0) : 0;
+  const real = () => rate * base;  // base：实际速度 = 显示的倍速 × base（RT.init 的 base，例如 1.1：显示 1x、实际 1.1 倍）
   function applyRate() {
-    stage.querySelectorAll('video').forEach(v => { v.defaultPlaybackRate = rate; v.playbackRate = rate; });
-    (voices() || []).forEach(a => { if (a) { a.defaultPlaybackRate = rate; a.playbackRate = rate; } });
+    stage.querySelectorAll('video').forEach(v => { v.defaultPlaybackRate = real(); v.playbackRate = real(); });
+    (voices() || []).forEach(a => { if (a) { a.defaultPlaybackRate = real(); a.playbackRate = real(); } });
     speedBtn.textContent = rate === 1 ? '1x' : rate + 'x';
     menu.querySelectorAll('button').forEach(b => b.classList.toggle('on', Number(b.dataset.r) === rate));
   }
@@ -76,20 +77,22 @@
     paint();
   }
   function trackAt(e) { const r = track.getBoundingClientRect(); return total() * Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); }
+  let was = {};  // 只在内容变了才写页面：这个函数高频调用，每次都写会和视频抢主线程
+  const put = (k, val, fn) => { if (was[k] !== val) { was[k] = val; fn(val); } };
   function paint() {
     const v = active();
     if (!cur && v && !v.loop) RT.begin({ key: 'clip:' + (v.currentSrc || v.src).split('?')[0], parts: [{ v, d: v.duration }] });
     const on = playing() && !!cur;
-    bar.hidden = !on;
-    if (!on) { pausedEl.hidden = true; menu.hidden = true; return; }
+    put('bar', !on, x => { bar.hidden = x; });
+    if (!on) { put('pausedEl', true, x => { pausedEl.hidden = x; }); if (!menu.hidden) menu.hidden = true; return; }
     const paused = !!(v && v.paused && !v.ended && v.readyState >= 2);
-    ppBtn.innerHTML = paused ? PLAY : PAUSE; ppBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause');
-    pausedEl.hidden = !paused || dragging;
-    const D = total(), t = Math.min(nowT(), D), f = D ? t / D * 100 : 0;
-    fill.style.width = f + '%'; knob.style.left = f + '%';
-    timeEl.textContent = fmt(t) + ' / ' + fmt(D);
-    labelEl.textContent = cur.label || ''; labelEl.hidden = !cur.label;
-    track.classList.toggle('free', !!cur.free);
+    put('pp', paused, x => { ppBtn.innerHTML = x ? PLAY : PAUSE; ppBtn.setAttribute('aria-label', x ? 'Play' : 'Pause'); });
+    put('pausedEl', !paused || dragging, x => { pausedEl.hidden = x; });
+    const D = total(), t = Math.min(nowT(), D), f = (D ? t / D * 100 : 0).toFixed(1);
+    put('f', f, x => { fill.style.width = x + '%'; knob.style.left = x + '%'; });
+    put('time', fmt(t) + ' / ' + fmt(D), x => { timeEl.textContent = x; });
+    put('label', cur.label || '', x => { labelEl.textContent = x; labelEl.hidden = !x; });
+    put('free', !!cur.free, x => track.classList.toggle('free', x));
   }
   // V2.3：配乐和歌声。预先生成好的音频按视频时间叠上去，不影响生成速度。mix = {bgm: url, song: {url, seg, at, dur}}
   const bgmEl = new Audio(), songEl = new Audio(); bgmEl.loop = true; bgmEl.volume = 0; let mix = null, bgmVol = 0, duckV = null, unlocked = false;
@@ -117,12 +120,13 @@
     bgmVol += Math.sign(want - bgmVol) * Math.min(0.03, Math.abs(want - bgmVol)); bgmEl.volume = bgmVol;
     if (want > 0 && bgmEl.paused) bgmEl.play().catch(() => {});
     if (want === 0 && bgmVol < 0.01 && !bgmEl.paused) bgmEl.pause();
-    bgmEl.playbackRate = songEl.playbackRate = rate;
+    bgmEl.playbackRate = rate; songEl.playbackRate = real();  // 唱段跟着画面走
   }
   const RT = window.RT = {
+    speed() { return real(); },
     mixState() { return { bgm: !bgmEl.paused, bgmVol: +bgmEl.volume.toFixed(2), song: !songEl.paused, songT: +songEl.currentTime.toFixed(1), mix: !!mix }; },
     init(o) {
-      o = o || {}; drama = o.drama || drama; if (o.zh) zh = o.zh; if (o.isPlaying) isPlaying = o.isPlaying; ignoreSel = o.ignore || ''; RT.destroy();
+      o = o || {}; drama = o.drama || drama; base = o.base || 1; if (o.zh) zh = o.zh; if (o.isPlaying) isPlaying = o.isPlaying; ignoreSel = o.ignore || ''; RT.destroy();
       stage = document.querySelector(o.stage || '#stage');
       if (!document.getElementById('rtStyle')) { const st = document.createElement('style'); st.id = 'rtStyle'; st.textContent = css; document.head.appendChild(st); }
       bar = document.createElement('div'); bar.id = 'rtBar'; bar.hidden = true;
@@ -130,7 +134,7 @@
       menu = document.createElement('div'); menu.id = 'rtMenu'; menu.hidden = true;
       menu.innerHTML = RATES.slice().reverse().map(r => `<button data-r="${r}">${r}x</button>`).join('');
       pausedEl = document.createElement('div'); pausedEl.id = 'rtPaused'; pausedEl.hidden = true; pausedEl.innerHTML = '<div>' + PLAY + '</div>';
-      hintEl = document.createElement('div'); hintEl.id = 'rtHint'; hintEl.hidden = true;
+      hintEl = document.createElement('div'); hintEl.id = 'rtHint'; hintEl.hidden = true; was = {};
       [pausedEl, bar, menu, hintEl].forEach(x => stage.appendChild(x));
       ppBtn = bar.querySelector('#rtPP'); timeEl = bar.querySelector('#rtTime'); track = bar.querySelector('#rtTrack'); fill = track.querySelector('b'); knob = track.querySelector('u'); labelEl = bar.querySelector('#rtLabel'); speedBtn = bar.querySelector('#rtSpeed');
       const saved = Number(store.get('rt-rate')); if (RATES.includes(saved)) rate = saved;
@@ -158,10 +162,11 @@
       if (!once) document.addEventListener('keydown', e => { if (stage && e.code === 'Space' && playing() && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); toggle(); } });
       once = true;
       stage.addEventListener('play', () => { if (stage) applyRate(); }, true);
-      stage.addEventListener('loadedmetadata', e => { e.target.dataset.rtSrc = e.target.currentSrc; e.target.playbackRate = rate; paint(); }, true);
+      stage.addEventListener('loadedmetadata', e => { e.target.dataset.rtSrc = e.target.currentSrc; e.target.playbackRate = real(); paint(); }, true);
       applyRate();
       const me = (RT._loop = (RT._loop || 0) + 1);
-      (function loop() { if (me !== RT._loop) return; try { paint(); } catch (e) {} requestAnimationFrame(loop); })();
+      let lastPaint = 0;
+      (function loop(now) { if (me !== RT._loop) return; if (dragging || !(now - lastPaint < 120)) { lastPaint = now; try { paint(); } catch (e) {} } requestAnimationFrame(loop); })();
       return RT;
     },
     begin(o) {

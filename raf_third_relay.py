@@ -266,6 +266,12 @@ def seg_eta(r, i):
     return round(g0 + GAP + P2 + PAD, 1)
 
 
+def outfit_ref(rid):
+    """V3.5（S034241cf8 第 5、6 轮他赤裸上身，第 2 段还带着穿夹克的服装母版，他的脸变年轻、变成另一种画风）：他没穿上衣时，服装母版换成他的头像，只锁脸。"""
+    he = str((((R[rid].get('spec') or {}).get('wardrobe_end')) or {}).get('he', ''))
+    return qa_guard.HE_HEAD if re.search('赤裸|光着|裸着|没穿上衣', he) else qa_guard.OUTFIT_URL
+
+
 def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=False):
     s = R[rid]['segs'][i]
     kw = dict(prompt=prompt, duration=dur, aspect_ratio='9:16')
@@ -277,8 +283,8 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
     elif first == 'lock': kw['first_frame_image'] = kw['last_frame_image'] = frame_url  # V0.17：10+10 第 1 段首尾帧都锁成上一刻画面
     elif first or (L.SEG2_FIRST and not extra): kw['first_frame_image'] = frame_url  # v0.11：第 2 段也从同一张首帧出发（参考图模式容易拍成第三人称、出现过肩）
     elif (R[rid].get('spec') or {}).get('wardrobe_changed'): kw['ref_images'] = [frame_url, qa_guard.HE_HEAD, qa_guard.HER_HEAD] + list(extra)[:2] + L.swatch(R[rid]['spec'].get('wardrobe_end'))  # V2.0 只带头像；V1.8：穿着变了不带服装母版和站位母版（它们会把衣服穿回去），穿着看上一刻的画面
-    elif no_scene: kw['ref_images'] = [L.plate_for(R[rid]['spec']) or STAGING_URL, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1]  # V3.0：有这个地点的固定空景就用它，不用灰底站位图（不然会漂回上一个地点）  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
-    else: kw['ref_images'] = [frame_url, face_url, qa_guard.OUTFIT_URL, HER_URL] + list(extra)[:1] + ([L.plate_for(R[rid]['spec'])] if not extra and L.plate_for(R[rid]['spec']) else [])  # V3.0：没有配角时第 5 张带上这个地点的空景  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
+    elif no_scene: kw['ref_images'] = [L.plate_for(R[rid]['spec']) or STAGING_URL, face_url, outfit_ref(rid), HER_URL] + list(extra)[:1]  # V3.0：有这个地点的固定空景就用它，不用灰底站位图（不然会漂回上一个地点）  # 换场的第 2 段不带旧地点的画面：带了模型会在最后一拍切回旧地点（v0.15 第 3 轮）
+    else: kw['ref_images'] = [frame_url, face_url, outfit_ref(rid), HER_URL] + list(extra)[:1] + ([L.plate_for(R[rid]['spec']) if not (i == 0 and (R[rid].get('spec') or {}).get('scene_changed')) else L.plate_for({'location': R[rid].get('place_before') or ''})] if not extra and (L.plate_for(R[rid]['spec']) if not (i == 0 and (R[rid].get('spec') or {}).get('scene_changed')) else L.plate_for({'location': R[rid].get('place_before') or ''})) else [])  # V3.4：换场那一轮第 1 段还在旧地点，带旧地点（place_before）的空景，不带新地点的（人鱼王子 11-04：会客厅那段带了潮门空景漂成别的大厅；什么都不带又漂成水下）  # V3.0：没有配角时第 5 张带上这个地点的空景  # Vivix 最多 5 张  # 有配角出镜时仍用参考图带上她的身份母版
     if i == 1 and L.TU.get('vehicle') and 'ref_images' in kw and len(kw['ref_images']) < 5 and any(L.RIDE_ON.search(str(b[0])) for b in (R[rid].get('spec') or {}).get('seg2') or []): kw['ref_images'] = kw['ref_images'] + [L.TU['vehicle']]  # V2.3：摩托每轮款式都在变
     def gen(body):
         cli = C2 if (i == 1 and C2) else c; sub = W1Client(api_key=os.environ['VIVIX_API_KEY_2'], max_retries=0) if cli is C2 else W1Client(max_retries=0); job = None  # V3.1：第 2 段走第二个工作区
@@ -321,11 +327,12 @@ def run_seg(rid, i, dur, prompt, first, frame_url, face_url, extra=(), no_scene=
         sp_hc = R[rid].get('spec') or {}; looks = lambda txt, n: re.sub(r'^[^：]{0,12}：', '', str(txt or ''))[:n]  # V3.0：每个人带一句外形，检查模型才分得清谁是女主、谁是配角（三真四假 S2351533a4 把 Sloane 的蓝裙子当成女主的裙子变色）
         names = [f'男主（{looks(L.HE_LOOK, 50)}）', f'女主（{looks(L.HER, 90)}）'] + [f'{c}（{looks(L.CAST[c][0], 110)}）' if c in L.CAST else c for c in (sp_hc.get('cast') or []) if not (c in L.CAST and hasattr(L, 'on_screen') and not any(L.on_screen(c, b) for b in (sp_hc.get(f'seg{i + 1}') or [])))] + [x['name'] for x in (sp_hc.get('extras') or []) if isinstance(x, dict) and x.get('name')]  # V3.3：只按这一段画面里的配角查（只出声的不算，出现就是多人）；V2.7：每一轮每一段都查，不合格重新生成，最多三次，都不合格就拦下
         people = f"{len(names)} 个人：{'；'.join(names)}" + ('；背景远处的路人不算' if re.search('酒吧|餐厅|夜宵|摊|街|人群|派对', str(sp_hc.get('set') or '')) else '') + ('；这一段他会变身成狼，不算错误' if sp_hc.get('wolf') else '')
-        w_hc = sp_hc.get('wardrobe_end') or {}; wear = f"男主：{w_hc.get('he') or L.HE_DEFAULT}；女主：{w_hc.get('she') or L.SHE_DEFAULT}"  # 只查第 2 段：第 1 段可能正在穿脱
+        w_hc = sp_hc.get('wardrobe_end') or {}; w0_hc = sp_hc.get('wardrobe_start') or {}
+        wear = f"男主：{w_hc.get('he') or L.HE_DEFAULT}；女主：{w_hc.get('she') or L.SHE_DEFAULT}" if i == 1 else '；'.join(x for x in ((f"男主：{w0_hc.get('he') or L.HE_DEFAULT}" if w0_hc.get('he') == w_hc.get('he') else ''), (f"女主：{w0_hc.get('she') or L.SHE_DEFAULT}" if w0_hc.get('she') == w_hc.get('she') else '')) if x)  # V3.4：第 1 段也查，只查这一轮没换装的人（Rafael 11-04 第 4 轮第 1 段他的牛仔裤变成黑裤）
         magic = re.search('飞|魔法|悬浮|漂浮|超能力|变身|穿越', str(R[rid].get('input') or ''))
         for tn in range(3):
             hcf = FR / f'{rid}_{i + 1}_hc.mp4'
-            try: fetch(job['video_url'], hcf); hc = qa_guard.hard_check(hcf, people, wear if i == 1 else '')
+            try: fetch(job['video_url'], hcf); hc = qa_guard.hard_check(hcf, people, wear)
             except Exception as e: hc = {'bad': False, 'kinds': [], 'err': str(e)[:120]}
             hcf.unlink(missing_ok=True); s.setdefault('hard_check', []).append(hc); log('HARDCHECK', rid, i + 1, tn, json.dumps(hc, ensure_ascii=False)[:200])
             kinds = set(hc.get('kinds') or []) or ({'people'} if hc.get('bad') else set())

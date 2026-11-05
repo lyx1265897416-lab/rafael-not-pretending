@@ -221,7 +221,7 @@ async function api(path, body){ await relayReady; const r = await fetch(API + pa
   .catch(e => setChip(e.message === 'nokey' ? '<b>Preview</b> · opening only; live scenes need the test link with a key' : '<b>Live generation offline</b> · the relay on the Mac is not reachable right now'));
 
 // 开场
-// 开场 101 秒：Pages 上走分段（media/open/，单文件 + 字节范围，一次只取几秒）。整部 26 MB 的 mp4 会被浏览器尽量往前下载，代理网络下把同一条连接堵住，开场一卡一卡，发送和轮询也跟着排队
+// 开场 101 秒（11-05 起用压到 1.1 Mbps 的版本切分段，原 2 Mbps 接近 Pages 实测网速 2.2 Mbps）：Pages 上走分段（media/open/，单文件 + 字节范围，一次只取几秒）。整部 26 MB 的 mp4 会被浏览器尽量往前下载，代理网络下把同一条连接堵住，开场一卡一卡，发送和轮询也跟着排队
 const ov = pool[1];
 function attachOpen(){
   const plain = () => load(ov, SRC('media/OPEN.mp4'));

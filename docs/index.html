@@ -230,7 +230,7 @@ function attachOpen(){
   if (!window.MediaSource && !window.ManagedMediaSource){ ov.addEventListener('error', plain, {once: true}); ov.src = HLS; ov.load(); return; }  // iPhone 没有 MSE，系统自己按分段播
   const el = document.createElement('script'); el.src = 'vendor/hls.light.min.js';
   el.onload = () => { const H = window.Hls; if (!H || !H.isSupported()) return plain();
-    const h = new H({maxBufferLength: 20, maxMaxBufferLength: 30, backBufferLength: 20});
+    const h = new H({maxBufferLength: 60, maxMaxBufferLength: 90, backBufferLength: 20});  // 11-05：原来只预载 20 秒，实测 Pages 网速会掉到 0.4–0.7 Mbps 持续半分钟，84 秒处停了 0.5 秒；1.1 Mbps 的分段预载 60 秒约 8 MB
     h.on(H.Events.ERROR, (_, e) => { if (e.fatal){ h.destroy(); plain(); } });  // 分段出错退回整部 mp4
     h.loadSource(HLS); h.attachMedia(ov); };
   el.onerror = plain; document.head.appendChild(el);

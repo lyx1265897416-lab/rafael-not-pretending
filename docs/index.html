@@ -226,7 +226,7 @@ const ov = pool[1];
 function attachOpen(){
   const plain = () => load(ov, SRC('media/OPEN.mp4'));
   if (!PAGES) return plain();
-  const HLS = 'media/open/i.m3u8';
+  const HLS = 'media/open/i2.m3u8';  // 11-05 换文件名，免得缓存里的旧 i.m4s 和新列表混用
   if (!window.MediaSource && !window.ManagedMediaSource){ ov.addEventListener('error', plain, {once: true}); ov.src = HLS; ov.load(); return; }  // iPhone 没有 MSE，系统自己按分段播
   const el = document.createElement('script'); el.src = 'vendor/hls.light.min.js';
   el.onload = () => { const H = window.Hls; if (!H || !H.isSupported()) return plain();

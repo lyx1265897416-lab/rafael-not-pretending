@@ -179,6 +179,23 @@
     clear() { cur = null; mix = null; },
     destroy() { RT._loop = (RT._loop || 0) + 1; cur = null; [pausedEl, bar, menu, hintEl].forEach(x => x && x.remove()); stage = null; bar = null; menu = null; },
     setVoices(fn) { voices = fn; },
+    // V3.6 第三视角：中转标出男女主左右对调的那几个镜头（段的 flip = [[开始秒, 结束秒], ...]），播到这几秒时画面水平镜像，换成别的视频自动取消。
+    // 换 src 之后调用：RT.flip(video, s.flip)。按视频帧回调切换，切点前后最多差一帧。
+    flip(v, ranges) {
+      v._flip = ranges && ranges.length ? { src: v.src, r: ranges } : null;
+      if (!v._flip) { v._flipped = false; v.style.transform = ''; }
+      if (v._flipOn) return RT;
+      v._flipOn = 1;
+      v.addEventListener('emptied', () => { if (v._flipped) { v._flipped = false; v.style.transform = ''; } });
+      const tick = (now, meta) => {
+        const f = v._flip, t = meta ? meta.mediaTime : v.currentTime;
+        const on = !!(f && v.src === f.src && f.r.some(([a, b]) => t >= a && t < b));
+        if (on !== !!v._flipped) { v._flipped = on; v.style.transform = on ? 'scaleX(-1)' : ''; }
+        if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(tick); else requestAnimationFrame(() => tick());
+      };
+      tick();
+      return RT;
+    },
     seen,
   };
 })();

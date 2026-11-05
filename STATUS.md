@@ -24,3 +24,9 @@ director.py、live_common.py、qa_guard.py、raf_third_relay.py 现在由 tools/
 
 ## V2.7（2026-11-02，Vicky 截图：两个 Rafael、人飞过画面）
 开播前 hard_check，视频参考图不再带全身穿着图，第 2 段查过才开播。回归 S013731a45、S015219bb0；决策 D33。
+
+## 网页播放卡（2026-11-05，同三真四假的修法）
+- 结论：Pages 实测开场 101.55 秒用 101.6 秒播完，0 次停顿；实时一轮 15+15（L020822e81）第 1 段 15.04 秒、第 2 段同一刻接上，两段都 0 次停顿，中转记 stall 0。
+- 改动（照搬三真四假）：docs/index.html 加 enough/bufEta/warm/pick/srcOf——开场缓冲够前面 8 秒才播；实时段一到就静音、0.0625 倍速在后台“播”（warm），浏览器才会一直下到结尾，开播时退回 0 秒、用回播放器倍速；每段真的缓冲到结尾才开播（不信 readyState 4）；开播时机算上浏览器下载第 2 段的时间。bufEta 比三真四假多一步：速度取“从开始加载算的平均速度（含首包等待）”和“最近测得的速度”里较慢的那个（Meet-me 实测 Vivix CDN 先快后慢，只看后者会提前开播，两段之间停 11.5 秒）。rt-player.js 不改 warm 视频的速度（共用源 tools/realtime-player/rt-player.js 已同步，备份 rt-player.before-warm.js）。改前备份在 backup-antistall/。
+- 开场：Pages 上走 HLS 分段（hls.js），原分段 2.08 Mbps，接近 Pages 实测网速 2.2 Mbps → 用压到 1.13 Mbps 的版本重切成 docs/media/open/i2.m3u8 + i2.m4s（改名防缓存混用，旧 i.* 原样留着给缓存里的旧页面）；hls.js 预载从 20 秒改 60 秒——第一次实测 Pages 网速掉到 0.4–0.7 Mbps 持续半分钟，84 秒处停了 0.5 秒，改后（绕开浏览器缓存）分段在 48 秒前全部下完、0 停顿。整部 OPEN.mp4（iPhone 无 MSE 时的退路）也换成 1.13 Mbps 版，GCS 新地址写进 CDN 和 cdn.json。
+- 这轮出片慢（第 1 段 145 秒才出），发送到开播 148 秒，是 Vivix 生成慢，不是播放问题。

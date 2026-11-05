@@ -127,6 +127,7 @@ Rafael 第 6–8 轮：她说“骑车带我去兜风”，视频只有戴头盔
   · 拉扯方式：用玩笑反将一军（“想要答案？先陪我把这碗面吃完”这类条件，但不拿合租、水、早餐换她的感情答案）；她拒绝一件事，他换一个更大胆的提议；她说不在乎，他也装不在乎，直到有人先破功。
   · 招牌动作（每轮选一个，她没要求也做）：用一个吻打断她的嘴硬（心意已经明朗之后）；把她圈在厨房台面和他之间说话；骑车载她不说去哪；当着 Evan 或别人的面把她拉到身边、手搭上她的腰；故意说出只有室友才知道的她的小习惯让她脸红；吃醋时一本正经地闹别扭、把她的杯子挪到自己这边；半夜敲她的门说“就五分钟”；替她挡下麻烦后若无其事地回去修车。
   · 名场面（每 2–3 轮一次，意想不到但很像他）：她说“我们只是朋友”时，他当着她的面把那句话演成反话——走近、抬起她的下巴、在她说完之前吻住；Evan 出现时他第一次不开玩笑，挡在她前面冷下脸；他把店里最宝贝的那辆车的钥匙放进她手心。
+  · 说话风格（V3.8）：懒洋洋的玩笑和自嘲，会接她的梗，把尴尬变成笑点；紧张时先开个玩笑再认真说一句；被拒绝时用一句自嘲给彼此台阶，不说教。台词按这个味道每次现编，不复用示范句。
 
 【人设驱动（V3.7，Vicky 11-04：剧情太依赖她、玩几轮很平、男主百依百顺；所有第三视角剧，硬规则）】
 - 人设是这部剧最强的导向，比选项和资料包都强。每一轮 Rafael 都按自己的性格做一件她没有要求的事，写进 persona_beat：从上面【人设驱动】的招牌动作里选，或者同样贴人设的新动作。性格用动作和一句话演出来，不靠解释。她不用打任何字，也要看得出他是什么样的人。
@@ -395,6 +396,14 @@ SYSTEM = WRITER_PE + "\n" + DIRECTOR_PE + "\n" + OUTPUT_PE + r"""
 - 高潮用这些方式演，不重复同一个模板：①移动拥吻：吻着从门口退到床沿，到床边坐稳后立刻继续（至少一拍看清移动）；②主动权接力：她先吻，他回应，再由他发起下一次；③枕边持续吻：开场已经在吻，切镜只换观察范围，手臂从轻放到相拥，分开后一句话；④手的动作：手指滑进头发、抓紧被单、十指相扣（有动作变化）；⑤省略到清晨：关灯或地上的衣服空镜作为过渡，下一拍是清晨。最后一拍可以停在动作还在进行时，不必都以“额头相抵 + 他说一句”结束。
 - 画面的边界（手册同样如此）：只拍脸、肩颈、手臂、背、他的上身和被子；她的胸口以下、两人的下身都盖在被子里或在画面外；不写性行为动作，不写跪在他两侧、跨坐后往下压这类姿势细节（实测这种写法被 Vivix 内容审核拦下；她没有说要在上面时，两人躺下写“她半撑着身子俯在他身侧”；她说跨坐、翻身压住时，按【动作要演对】的写法，衣服穿着，镜头停在上半身），用拥吻、切镜和省略表达。昨晚和之前的亲密不算这一次的许可：只有她这一轮在往前走才往前走。
 - 亲密进行中不打断：不写敲门、手机震动、来电、“透口气”、去阳台、去厨房，除非她自己说；不换地点，除非她说要去。钩子写两人之间的下一步，选项也都是两人之间更进一步或换一种亲近，不再追问“答案”。
+【台词要像真人（V3.8，Vicky 11-04：男主的回复太人机、机械，老重复一件事；所有第三视角剧，硬规则）】
+- 先接住她刚说的那句话：用她话里的词、她的动作或她的情绪回一句，再往下推。她说什么他都像在背稿，就是人机感的来源。
+- 有趣：每轮至少一句好玩的话，按他的说话风格（见【人设驱动】）——自嘲、反讽、夸张、接她的梗、调侃眼前的小事、回扣前几轮的笑点。尴尬、冷场、她拒绝或生气时，先用一句玩笑把气氛接住，再往前推；她真的难过或害怕时收起玩笑。
+- 不重复：他已经说过的意思不再说第二遍（输入里的【他说过的话】），同一件事（早餐、答案不急、昨晚的事、他喜欢她多久）整集只说一次，除非剧情有了新进展。资料包关键片段卡里的台词只是语气参考，不照抄。
+- 像人说话：用缩写和口语（Look, / Yeah. / Okay, fine. / Wait—），可以打断、反问、话说一半；一句话多数 5–12 个英文词。不写一串电报体碎片（“Eggs. Eat.”“Kitchen. Ten minutes. Eggs.”），不写格言式对仗金句（“Last night was an excuse. Liking you isn't.”）——这种句子整集最多一句。
+- 该强势的时候强势：她挑衅、情敌出现、她有危险时，一句短而笃定的话，不加解释、不商量；说完给一个动作。
+- 每个人说话不一样：他的口头禅、用词和节奏按他的说话风格，不把所有男主写成同一个人。
+
 【台词（V1.8）】
 - 台词是角色此刻当面说出口的话，用“我”和“你”。不描述自己正在做的动作（不写 I'm sitting on you、Yes. I want to touch your abs），不复述她打的字。她打的是动作时，把动作演出来，台词写她这时会对他说的短句（Hold still. / Look at me.），或者不说话。
 - 他的话要接住这一刻，不说套话；“Lead the way”“Now keep your promise”这类不重复。
@@ -466,6 +475,8 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
         calm += 1
     if n >= 2 and calm >= 2: pace += f"\n【名场面时钟】已经 {calm} 轮没有他的名场面：这一轮让他做一件意想不到、但贴人设的高张力的事（surprise=true，见【人设驱动】），除非她刚说了停或拒绝、或者她正难过。"  # V3.7
     pace += '\n【人设驱动】这一轮 Rafael 按性格做一件她没要求的事（persona_beat）；她的要求和他的性格冲突时要有拉扯，不百依百顺。'
+    said = [str(x).strip() for h in history[-4:] for x in (h.get('lines') or []) if str(x).strip()]
+    if said: pace += '\n【他说过的话】这些话和同样的意思不再说第二遍，换新的、接住她这一句的话：' + ' / '.join(said[-16:])  # V3.8：四轮里“I kept it vague because it was easier.”“Last night was an excuse. Liking you isn't.”每轮都说
     STOP_ASK = re.compile('停|不要|别碰|走开|放开|离我远|别过来|讨厌你|不喜欢你|不想(跟|和)你|你走')
     RIVAL_ASK = re.compile('前任|别的男|别人|另一个|约会|约了|约我|去见|见面|相亲|搬走|搬出去|离开|要走|分手|不回来' + ''.join('|' + re.escape(c) for c in getattr(L, 'CAST', {})))
     if STOP_ASK.search(text or ''): pace += '\n【人设触发：她在推开他】她的拒绝有效：他不靠近、不强吻、不挡路；但不是一句 Okay 就退场——按他的性格回应（嘴硬、换一种方式留下、认真说一句心里话、用玩笑给台阶），把下一步留给她。'  # V3.7
@@ -518,6 +529,7 @@ def direct(history, state, text, kind, mode, timeout=60, place=None, place_round
             if _sim(k, str(sp.get('location') or '')) >= 0.6 and room(k) == room(str(sp.get('location') or '')): sp['location'] = k; sp['set'] = v; break  # 要是同一种房间（“公寓卧室”和“公寓客厅”相似度也有 0.67）
     settle_ride(sp, cont, set_now); settle_walk(sp, set_now)
     ensure_empty_shot(sp); ensure_cast(sp); clean_empty_shots(sp); empty_first(sp, set_now); cast_out_of_seg1(sp); seg1_wide(sp)
+    dedupe_lines(sp, history)
     settle_wardrobe(sp, wardrobe, text, set_now, cont.get('posture') or '', cont.get('outfits') or ()); settle_state(sp, cont, wardrobe, text); clean_zh(sp)
     ctx = dict(ask_text=text, he_now=(wardrobe or {}).get('he', ''), she_now=(wardrobe or {}).get('she', ''), must_scene=must_scene, must_card=must_card, kind=kind, done=list(done), seen=seen, place_rounds=place_rounds, must_kiss=must_kiss, n=n, prev_opts=(history[-1].get('opts') if history else None), set_now=set_now, lead=lead, stall=stall, her_said=' '.join([h.get('input') or '' for h in history] + [text or '']), items=cont.get('items') or [], left=cont.get('left') or {}, holding=cont.get('holding') or '', looks=list(cont.get('looks') or []), posture=cont.get('posture') or '')
     sp['lint_left'] = lint(sp, m, ctx)  # V1.5：修完还剩的问题只记录，不再为选项单独调一次导演层
@@ -1255,6 +1267,32 @@ def settle_wardrobe(sp, prev, asked='', set_now=None, posture='', outfits=()):
             s2.pop(i)
             if isinstance(z2, list) and i < len(z2): z2.pop(i)
     sp['wardrobe_start'] = start; sp['wardrobe_end'] = end; sp['wardrobe_changed'] = bool(start or end)
+
+
+SHOT_LINE = re.compile(r'^[\s（(]*(双人|单人|空镜|插入|特写|近景|中近景|中景|全景|远景|略俯|略仰|平视|固定|缓推|跟拍)')
+
+
+def _norm_line(t):
+    return re.sub(r"[^a-z0-9' ]", '', str(t).lower()).strip()
+
+
+def dedupe_lines(sp, history):
+    """V3.8：清掉他说过的原话和近似的话（前几轮、这一轮前面），以及模型误写进台词栏的镜头说明（GLM 兜底时“双人中近景，平视，固定”被当成台词念出来）。清掉的那拍只保留动作。"""
+    import difflib
+    old = [_norm_line(x) for h in history for x in (h.get('lines') or []) if _norm_line(x)]
+    z = sp.get('zh') if isinstance(sp.get('zh'), dict) else {}; cut = []
+    for k in ('seg1', 'seg2'):
+        for i, b in enumerate(sp.get(k) or []):
+            line = str(b[1] if len(b) > 1 else '').strip()
+            if not line: continue
+            n = _norm_line(line); bad = bool(SHOT_LINE.search(line)) or not re.search('[A-Za-z]', line)
+            if not bad and len(n.split()) >= 4 and str(b[3] if len(b) > 3 else 'Rafael') not in ('她',):
+                bad = any(n == o or difflib.SequenceMatcher(None, n, o).ratio() >= 0.82 for o in old)
+            if bad:
+                cut.append(line[:40]); b[1] = ''
+                if isinstance(z.get(k), list) and i < len(z[k]): z[k][i] = ''
+            elif n: old.append(n)
+    if cut: sp['lines_deduped'] = cut
 
 
 def clean_zh(sp):
